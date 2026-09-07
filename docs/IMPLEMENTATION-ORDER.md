@@ -198,9 +198,29 @@ walkthrough, and no ADR covers them. Everything else in the code is traceable to
     server and a production build, on a real GPU with working workers. 5.24.0 renders correctly. Taking
     `latest` from a package manager is not a decision, which is how this got in.
 
+12. **The fleet is placed and dispatched inside the service area; only a customer's trip may end outside
+    it.** ADR-0007 §7.12 required the road network to extend past the boundary, and placing the fleet over
+    the whole network meant about six vehicles started parked outside it — which makes a specified state
+    observable immediately but for the wrong reason, and a vehicle parked outside the area at startup reads
+    as a bug rather than as information. The network also gained a western exit, because it originally
+    crossed the boundary in one place only, which made leaving the area a twenty-kilometre drive.
+
 ## The slop pass
 
-Before submission, one rule from `PRODUCT-SPEC.md` §5: **anything in the repository that does not serve a
-feature in §3 is a defect.** File by file, ask which acceptance criterion it serves. The specific things to
-hunt are listed in ADR-0010 §10.8 — tooling finds unused code, but only reading finds code that is used and
-pointless.
+**Done.** One rule from `PRODUCT-SPEC.md` §5: **anything in the repository that does not serve a feature in
+§3 is a defect.** The specific things to hunt are listed in ADR-0010 §10.8 — tooling finds unused code, but
+only reading finds code that is used and pointless.
+
+What it found, all of it fixed by making the code use what it had declared rather than by deleting:
+`EventType.Signal()` was called only by its own test, while the simulator restated the same mapping at five
+emission sites; `FreshnessBudget` was declared and never read, because only half of ADR-0009 §9.4's
+assertion had been written; six web exports had no consumer outside their own file; `stream.open` carried a
+path parameter whose one caller never varied it; and the store recorded `transportFailed` while nothing read
+it.
+
+Checked clean: no orphan CSS, no untracked scaffolding, no comment that restates the code beneath it, every
+simulator parameter read, and the generated TypeScript unmistakably marked.
+
+It also turned up a bug nothing else would have caught: `Graph.Path` could choose the origin as its
+destination when the minimum distance was zero, returning an empty path — which the caller reads as having
+nowhere to go, leaving a vehicle stationary for the rest of the run.
