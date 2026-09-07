@@ -145,7 +145,9 @@ Depends on §4 for what state exists. `PRODUCT-SPEC.md` set the 250 ms budget; t
 met.
 
 - **5.1** — What does one unit of output to the frontend describe? *(spec)*
-- **5.2** — What causes a unit of output to be produced? *(spec)*
+- **5.2** — *Decided early in ADR-0004: publishing is tick-based.* §4.4's concurrency model depends on
+  it, so it could not wait. What remains open here is the tick interval and how it relates to the
+  250 ms budget.
 - **5.3** — How does a newly connected client obtain the fleet as it currently stands? *(spec)*
 - **5.4** — Does the client ever ask the backend for anything, or only receive?
 - **5.5** — What carries data from backend to browser?

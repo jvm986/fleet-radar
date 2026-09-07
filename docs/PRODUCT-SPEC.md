@@ -196,8 +196,10 @@ resolution is the reason several features are as thin as they are.
 The map occupies the full window. Nothing else holds a permanent claim on screen space.
 
 **Acceptance criteria**
-- Given the fleet is being reported, the operator sees every vehicle positioned on a map of the
-  Las Vegas service area.
+- Given the fleet is being reported, the operator sees every vehicle **whose position is known**
+  placed on a map of the Las Vegas service area.
+- A vehicle that is known to the fleet but has never reported a position cannot be drawn, and is
+  accounted for in the summary instead (F8) rather than being silently absent.
 - Given a vehicle's reported position changes, its position on the map changes to match.
 - **Each vehicle is drawn as a single directional marker oriented to its heading**, so which way
   it is pointing is readable for every vehicle, parked or moving.
@@ -336,6 +338,9 @@ window.
 - A stale vehicle remains on the map at its last known position, and how long it has been silent
   is shown.
 - Given a vehicle that had gone stale is reported again, it visibly returns to normal.
+- **A vehicle we have never heard from is distinguishable from one we have stopped hearing from.**
+  "Stale" means we had it and lost it; "awaiting a first report" means we know it exists and have
+  never had it. The two call for different responses and are never merged.
 - How current a vehicle's information is is surfaced only when it is a problem, except for the
   selected vehicle, where it is always shown.
 - Given the connection between browser and backend is lost, the operator is told the *whole view*
@@ -396,6 +401,9 @@ compact by default so it costs as little of the map as possible.
   relationship between summary and filtered map is evident rather than confusing.
 - The figures change as the fleet changes.
 - The figures reconcile with the unfiltered map; a figure that disagrees with it is a defect.
+- **The summary reports how many vehicles are awaiting a first report**, which is what makes that
+  reconciliation hold: the map shows every vehicle with a known position, and the summary accounts
+  for the ones that have none. A vehicle we know about is never invisible in both places at once.
 - **Selecting a figure applies the corresponding filter**, so the summary answers "how many" and
   then serves as the way to ask "which ones".
 - **A figure does not change when its own filter is applied.** The summary always describes the
