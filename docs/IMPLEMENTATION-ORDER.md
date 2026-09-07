@@ -189,6 +189,12 @@ walkthrough, and no ADR covers them. Everything else in the code is traceable to
     fine and inks where it is not, which is what ADR-0002 §2.9 designed for. Both ADR-0007's numbers
     that this exposed as wrong are amended in that ADR rather than only here.
 
+11. **MapLibre is pinned to 5.x, not the latest.** `maplibre-gl@6.7.0` — the current `latest` — renders
+    background layers and nothing else here: no tile requests, `load` never fires, and no error is
+    raised. Reproduced with a fifteen-line map containing none of this project's code, in both the dev
+    server and a production build, on a real GPU with working workers. 5.24.0 renders correctly. Taking
+    `latest` from a package manager is not a decision, which is how this got in.
+
 ## The slop pass
 
 Before submission, one rule from `PRODUCT-SPEC.md` §5: **anything in the repository that does not serve a

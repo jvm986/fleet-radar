@@ -46,7 +46,7 @@ export type FillTreatment = "hollow" | "solid" | "cored";
 
 /** markerSize is the drawn size in logical pixels: large enough to read a heading from, small enough
  * that a hundred of them stay individually distinguishable. */
-export const markerSize = 20;
+export const markerSize = 18;
 
 const scale = 2;
 
@@ -59,7 +59,7 @@ export function vehicleImage(colour: string, fill: FillTreatment): ImageData {
   context.beginPath();
   context.moveTo(...point(0.5, 0.06));
   context.lineTo(...point(0.88, 0.94));
-  context.lineTo(...point(0.5, 0.72));
+  context.lineTo(...point(0.5, 0.82));
   context.lineTo(...point(0.12, 0.94));
   context.closePath();
 
@@ -82,7 +82,7 @@ export function vehicleImage(colour: string, fill: FillTreatment): ImageData {
 
   if (fill === "cored") {
     context.beginPath();
-    context.arc(...point(0.5, 0.62), 0.13 * size, 0, 2 * Math.PI);
+    context.arc(...point(0.5, 0.66), 0.14 * size, 0, 2 * Math.PI);
     context.fillStyle = "#ffffff";
     context.fill();
   }

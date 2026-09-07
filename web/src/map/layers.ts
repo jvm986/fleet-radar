@@ -102,7 +102,7 @@ function definitions(): LayerSpecification[] {
           coveragePatterns.NONE_AVAILABLE.id,
           coveragePatterns.BELOW_MINIMUM.id,
         ],
-        "fill-opacity": 0.55,
+        "fill-opacity": 0.32,
       },
     },
 
@@ -150,7 +150,7 @@ function definitions(): LayerSpecification[] {
       source: sources.routes,
       filter: unselected(""),
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#4b5563", "line-width": 1.5, "line-opacity": 0.3 },
+      paint: { "line-color": "#1f2937", "line-width": 2, "line-opacity": 0.45 },
     },
     {
       id: layers.routeEmphasised,
