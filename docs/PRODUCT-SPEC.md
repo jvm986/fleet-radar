@@ -601,12 +601,21 @@ relative definition encodes the actual meaning and stays correct if the cadence 
 hardcoded number of seconds silently becomes wrong the moment the reporting rate moves, which is
 the kind of latent bug that survives a long time because nothing fails loudly. One missed report
 would strobe the fleet in and out of stale on ordinary jitter. *Cost:* two intervals tolerates only
-one interval of jitter, which constrains decisions not yet made — the reporting cadence must be
-regular, and if the event source simulates delayed delivery aggressively, false staleness is the
-expected symptom. Recorded so it is diagnosed rather than rediscovered. *Also:* staleness is
-derived from **absence**, making it the only operator-visible state not caused by an event. Every
-other value is a pure function of consumed events; this one requires something to evaluate the
-passage of time, and that asymmetry has to be built deliberately.
+one interval of jitter, so the reporting cadence must be regular.
+
+*Corrected by ADR-0007.* An earlier version of this note warned that simulating delayed delivery
+aggressively would cause false staleness. That holds only for *uniform* delay. Staleness compares the
+clock against the **newest** observation timestamp received, so delaying one event does not delay the
+next — a late event arrives, is discarded as superseded, and staleness is untouched because a newer
+observation already landed on time. Only delaying every event, or a mean delivery lag approaching the
+threshold, trips it. The constraint is therefore narrower than first recorded: per-event delay on a
+subset is safe, uniform delay is not.
+
+*Also corrected, by ADR-0004.* This note originally observed that staleness is derived from
+**absence**, making it the only operator-visible state not caused by an event, and concluded that the
+asymmetry had to be built deliberately. It does not: staleness is never stored, only derived per
+publish from the latest observation timestamp and the clock. The store therefore stays purely
+event-written and the asymmetry never exists.
 
 **Stale vehicles stay on the map, marked, with their silence duration.** The vehicle that has gone
 silent is precisely the vehicle that may need a field agent — it is the *most* interesting vehicle
