@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §9.1–§9.10
 - **Related:** every preceding ADR; `PRODUCT-SPEC.md` §3 acceptance criteria, §4.2, §5
 - **Imposes:** injectable clocks in the backend derivation, the client watchdog, and the simulator
 
@@ -160,6 +159,13 @@ the disconnected-view test, and the demo-still-demonstrates test all require con
 So all three take a clock as a dependency. Recorded as a design constraint because it is cheap up front
 and invasive to retrofit, and because it is not obvious from any earlier ADR that three separate
 components need it for the same reason.
+
+⚠️ **Amended in implementation: four components, not three — the projector takes a clock too.** For the
+same reason as the others: ADR-0003 §3.5 asks for implausible observation timestamps to be logged, which is
+a comparison against now, and a producer running ahead of the backend would push staleness permanently out
+of reach while nothing on screen said so. Testing that requires controlling the projector's clock as well
+as the deriver's. The count was low because the projection was not thought of as time-dependent; it reads
+a timestamp and judges it, so it is.
 
 ## Consequences
 

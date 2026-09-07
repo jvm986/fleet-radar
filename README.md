@@ -176,9 +176,10 @@ That held. Ingest sustained ~1085 events/sec with nothing dropped, derivation to
 tick, publish spacing stayed at 200.0 ms median and 201.7 ms worst, and the whole backend sat at 2–4% of one
 core in 22 MB. The client held 60 fps with no long tasks.
 
-The operator is what breaks, and by a wide margin — the screenshot in `docs/1000-vehicles.png` is the
-argument. The wire is the first technical thing to bend, at 274 KB per snapshot and 11 Mbps per viewer, 25%
-worse than estimated.
+The operator is what breaks, and by a wide margin: a thousand markers over 82 intersections is a texture
+rather than a fleet — clumps at junctions, 48 attention rings reading as wallpaper, and a coverage layer
+gone blank because only problem zones get ink. The wire is the first technical thing to bend, at 274 KB per
+snapshot and 11 Mbps per viewer, 25% worse than estimated.
 
 Two findings worth reading the ADR for. The ranking was **wrong** about the client, which it called tight
 and which is comfortable; the amendment says so rather than explaining it away. And a snapshot gzips to 21%
@@ -211,9 +212,7 @@ Depth on demand. Nobody needs to read all of this.
 | | |
 |---|---|
 | [`docs/PRODUCT-SPEC.md`](docs/PRODUCT-SPEC.md) | What is built and why, with acceptance criteria, and an explicit out-of-scope list. §7 is the product reasoning. |
-| [`docs/adr/`](docs/adr/README.md) | Ten architecture decisions. The index carries a reading order, including a three-ADR path. |
-| [`docs/IMPLEMENTATION-ORDER.md`](docs/IMPLEMENTATION-ORDER.md) | What was built first and why, and the decisions taken while writing the code that no ADR covers. |
-| [`docs/ARCHITECTURE-DECISIONS-TO-MAKE.md`](docs/ARCHITECTURE-DECISIONS-TO-MAKE.md) | The questions, before they had answers. Kept as the record of what was asked. |
+| [`docs/adr/`](docs/adr/README.md) | Ten architecture decisions. The index carries a reading order, including a three-ADR path. Decisions taken while writing the code are folded into the ADR each one amends, marked ⚠️ **Amended in implementation**. |
 | [`transcripts/`](transcripts/) | The two sessions that produced all of it: the decisions, then the code. |
 
 Three ADRs if you only read three: [0003](docs/adr/0003-inbound-event-model.md) for the event model that

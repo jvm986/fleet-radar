@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §4.1–§4.12, and §5.2 ahead of its section
 - **Related:** `PRODUCT-SPEC.md` F1, F6, F7, F8, F9, §7.1, §7.2, §7.4; ADR-0001, ADR-0003
 - **Amends:** `PRODUCT-SPEC.md` F1, F6, F8 — vehicles awaiting a first report
 
@@ -130,6 +129,14 @@ vehicles outside any zone. §7.2 named "vehicles belonging to no zone silently d
 likeliest correctness bug in the design; an explicit value plus an explicit count makes the case
 impossible to overlook instead of relying on every future aggregation being written carefully.
 
+⚠️ **Amended in implementation: staleness is measured against the vehicle's own telemetry only** —
+position, battery and status. "Latest observation timestamp" is therefore the latest across three signals,
+not across all six event types. Registration is excluded because a replayed roster entry is not the vehicle
+speaking, and route events are excluded because they come from the assignment system rather than from the
+vehicle. Counting either would let a silent vehicle look fresh, which is the one thing F6 exists to
+prevent — and it would do so in the case that matters most, a vehicle that goes quiet while driving a
+route.
+
 ### Warm-up and restart (§4.8, §4.9)
 
 Registration replay creates a category that had not been specified: **a vehicle that is known but has
@@ -142,6 +149,19 @@ summary reports how many are **awaiting a first report**. F8's map-summary recon
 still holds, and the offline-at-startup vehicle is visible as a number even though it cannot be a
 marker. F6 additionally requires that "awaiting a first report" stay distinguishable from "stale" —
 never heard from, versus heard from and lost.
+
+⚠️ **Amended in implementation: a vehicle is drawn only once position, battery and status have each been
+reported.** "With a known position" admits a third category the spec does not model — position known,
+status not — and that category is reachable, because each signal arrives in its own event and ordering
+across topics is not guaranteed. Rather than invent a way to draw a vehicle of unknown status, such a
+vehicle stays in `awaitingFirstReport` until it is fully described. Cost: for well under a second at
+startup, a vehicle whose position is already known reads as awaiting its first report.
+
+⚠️ **Amended in implementation: the `Starting → Ready` lifecycle is not held in the store.** §4.11
+describes the read path serving "the snapshot plus a filling flag" without saying where the flag lives.
+Replay completion is a fact about the consumer, not an event about a vehicle, so storing it would have
+made it the store's one non-event writer — and §4.3's guarantee would have needed a footnote instead of
+being a type signature. The read path owns it, and the store stays purely event-written.
 
 Restart is replay of the lifecycle topic from the beginning followed by live telemetry, which with real
 Kafka is literally "subscribe from earliest on a compacted topic".

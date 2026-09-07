@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §3.1–§3.16
 - **Related:** `PRODUCT-SPEC.md` F2, F6, F9, F10, §7.1, §7.4; ADR-0001
 - **Defers to ADR-0004:** the storage port that registration replay populates (§4.2, §4.8, §4.9)
 
@@ -110,6 +109,13 @@ Route events carry a **route id** as well as a sequence number. Without it, an o
 current route. The sequence number would technically cover this, but the id makes the intent explicit
 and the logs legible.
 
+⚠️ **Amended in implementation: the route id is carried into the discard log, not used as a control-flow
+guard.** The concession above — that the sequence number technically covers it — turns out to be
+decisive. A guard testing the id could never be the thing that rejected the event, because the per-signal
+sequence check rejects it first; the branch would be unreachable code, which is precisely what ADR-0010
+§10.8 hunts for. So the id earns its place on the second ground only: it makes the discard legible as
+`discarded: superseded` against a named route rather than an anonymous one.
+
 A route carries **no progress field**. `PRODUCT-SPEC.md` derives progress from the vehicle's position
 along the drawn line, so a number in the contract would be a second, disagreeing source of truth.
 Shaping the geometry as the renderer expects avoids a transform, at the cost of a mild coupling
@@ -141,6 +147,13 @@ genuinely decommissioned vehicle would linger as permanently stale.
 A malformed event is discarded and logged with a reason and a bounded excerpt of the payload. One bad
 event must never stop the fleet. The real-Kafka equivalent is committing the offset and producing to a
 dead-letter topic; that seam is named, not built.
+
+⚠️ **Amended in implementation: "malformed" includes the payload domain, not just the envelope.** Read
+narrowly, malformed means unparseable — and stopping there would admit a bearing of 400°, a battery of 1.7
+and an unrecognised status, each of which reaches the store and becomes an operator-facing wrong answer
+instead of a logged discard. So a bearing must be a bearing, a battery a proportion of capacity, and a
+status one of the three. This path is covered by unit tests rather than seen in a normal run, because
+ADR-0007 §7.8 deliberately keeps malformed events out of one.
 
 **Modelled from Kafka:** logical topics for telemetry, lifecycle and routes; **partition key = vehicle
 UUID**, which is what makes per-vehicle sequencing the right granularity; at-least-once delivery; and

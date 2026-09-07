@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §8.1–§8.12
 - **Related:** every preceding ADR, and `PRODUCT-SPEC.md` §7.1, §7.2, §7.5
 
 ## Context
@@ -85,8 +84,11 @@ Nothing. The claim is only credible if it rests on decisions already taken, so b
    whose cost is independent of fleet size.
 4. **Data-driven map layers** (ADR-0002). Rendering is identical at 100 and 1000; no rewrite is
    implied.
-5. **The `FleetStore` port** (ADR-0004). Sharding or persistence substitutes behind a boundary that
-   already exists.
+5. **The store behind a read-only interface** (ADR-0004). Sharding or persistence replaces the concrete
+   store without anything above it changing, because the only things above it are the projection and that
+   read-only view. This said "the `FleetStore` port" until the port failed its own justification and was
+   removed; the substitution argument survives it, because it never depended on the *write* surface being
+   an interface.
 
 ### Does coverage mean the same thing when the fleet is ten times denser? (§8.11)
 
@@ -182,8 +184,8 @@ multiplies the one thing already known to be the binding constraint.
 ### The headline stands
 
 The stated position — the technical envelope reaches ~1000 vehicles and the human envelope does not — held
-up, and by a wider margin than expected on the backend. The screenshot is the argument: a thousand markers
-on one screen is not a view of a fleet, it is a texture.
+up, and by a wider margin than expected on the backend. The three findings above are the argument, and they
+compound: a thousand markers on one screen is not a view of a fleet, it is a texture.
 
 ## How this was to be verified (§8.10)
 

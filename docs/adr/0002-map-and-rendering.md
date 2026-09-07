@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §2.1–§2.13
 - **Related:** `PRODUCT-SPEC.md` F1, F2, F3, F7, §7.5, §7.6; ADR-0001
 - **Amends:** `PRODUCT-SPEC.md` F2 — destination marking narrowed to the emphasised route
 
@@ -52,6 +51,13 @@ constraint is discharged here.
 | **MapLibre GL JS — chosen** | GPU vector rendering with data-driven styling, so a hundred vehicles are rows in a source rather than a hundred objects. Marker rotation is a first-class property, which matters because every vehicle carries heading. No API key. Goes to 1000 vehicles without a rewrite, which is what makes the scale story credible rather than aspirational. | Heavier API surface; styling expressions have a real learning curve and read less obviously than imperative code. |
 | Leaflet | Simplest API, vast ecosystem, quickest to something on screen. | DOM and canvas markers: acceptable at 100, painful at 1000, and per-marker rotation is awkward. Would need replacing precisely when the scale question is asked. |
 | deck.gl layered over MapLibre | Best-in-class for large datasets and GPU-side updates. | Overkill at 100 vehicles and an additional abstraction to justify. The thing to reach for *if* symbol layers stop coping, not before. |
+
+⚠️ **Amended in implementation: MapLibre is pinned to 5.x, not the latest.** `maplibre-gl@6.7.0` — the
+current `latest` — renders background layers and nothing else here: no tile requests are issued, `load`
+never fires, and no error is raised. Reproduced with a fifteen-line map containing none of this project's
+code, in both the dev server and a production build, on a real GPU with working workers; 5.24.0 renders
+correctly. The choice above is unaffected. What is worth recording is how it got in: taking `latest` from
+a package manager is not a decision, and the failure mode it bought was a blank map with a clean console.
 
 ### Base map imagery (§2.2)
 
@@ -128,6 +134,19 @@ information nobody is reading. This also adopts ADR-0003's scale conclusion now,
 criterion is narrowed to the emphasised route, on the grounds that identifying which end is the goal
 matters when tracing a route and not when reading where work is concentrated. Amended rather than
 reinterpreted silently.
+
+⚠️ **Amended in implementation: the zones were enlarged, and their minimums come from measurement rather
+than from area.** As first drawn, the five districts held 30 of the road network's 82 intersections — so
+two thirds of available vehicles were in no zone, and coverage described a minority of the fleet rather
+than the city. That is not what `PRODUCT-SPEC.md` §2.5's "subdivided into named zones" should mean.
+Enlarged, they hold 60, and the gaps between them are still real, so a vehicle inside the service area and
+in no zone remains reachable — the case §7.2 called the likeliest correctness bug in the design.
+
+The minimums are then measured rather than reasoned. Intersection counts predicted availability badly,
+because vehicles do not distribute evenly over a road network. Set against *observed* availability, about
+a third of sampled moments have at least one district short: the layer stays quiet when the fleet is fine
+and inks where it is not, which is exactly what "only inking problem zones" above was designed for. Set
+from area instead, it would have inked nothing, ever, and the feature would have looked untested.
 
 ### Panel interaction and hit-testing (§2.11, §2.12)
 

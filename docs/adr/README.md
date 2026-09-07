@@ -1,11 +1,19 @@
 # Architecture Decision Records
 
 Ten ADRs covering every technical decision in Fleet Radar. Product decisions live in
-`../PRODUCT-SPEC.md` (§2–§5 for the decisions, §7 for the reasoning); the questions these answer are in
-`../ARCHITECTURE-DECISIONS-TO-MAKE.md`.
+`../PRODUCT-SPEC.md` (§2–§5 for the decisions, §7 for the reasoning).
 
 Each ADR carries context, the options considered with their trade-offs, the decision, consequences
 including accepted costs, what would make us revisit it, and how it holds up at ~1000 vehicles.
+
+**On the section numbers.** A reference like §4.2 names one decision within an area of the design — area 1
+the stack, 2 the map, 3 the event model, and so on, one area per ADR. Each ADR's subsection headings carry
+the numbers it answers. Where an ADR cites `PRODUCT-SPEC.md` §7.x it names that document, which numbers
+its sections independently.
+
+**Decisions taken while writing the code** are folded into the ADR each one amends, marked
+⚠️ **Amended in implementation**. They are not a separate document, because several of them contradict the
+ADR they belong to, and a contradiction is only legible next to what it contradicts.
 
 ## If you read three
 

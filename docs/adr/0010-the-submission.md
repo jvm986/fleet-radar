@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §10.1–§10.8
 - **Related:** `PRODUCT-SPEC.md` §5; ADR-0008, ADR-0009
 
 ## Context
@@ -66,8 +65,10 @@ the spec when they turned out to be product decisions, registration replay was r
 removed, the storage port was introduced from outside, and two earlier claims of mine were corrected in
 place. Documents that record being wrong are harder to mistake for generated filler.
 
-`docs/prompt.txt` is retained deliberately for the same reason: it shows the working instructions that
-produced the artefact sequence, and reads as deliberate process rather than as leftover scaffolding.
+The working instructions behind that sequence are visible for the same reason: they open the
+design-decisions transcript verbatim, where they can be read against what was actually done with them.
+Stated on their own they would be a claim about process; stated next to the process they are evidence of
+it.
 
 ### Describing the architecture (§10.3)
 
@@ -152,6 +153,28 @@ specifically for:
 `staticcheck` and `go vet` catch some of this mechanically; the read-through catches the rest. Rejected
 alternative: relying on tooling alone, which finds unused code but not code that is used and pointless.
 
+⚠️ **Done. What it found, and the shape of the finding matters:** four of the five were fixed by making the
+code *use* what it had declared, not by deleting.
+
+- `EventType.Signal()` was called only by its own test, while the simulator restated the same mapping at
+  five emission sites. Routing the sites through the method removed the duplication and made the test guard
+  something real.
+- `FreshnessBudget` was declared and never read, because only half of ADR-0009 §9.4's assertion had been
+  written. Writing the other half closed it: **310 events plus a publish take 1.2 ms against a 250 ms
+  budget**, so the guarantee is bounded by the tick rather than by processing.
+- Six web exports had no consumer outside their own file, and `stream.open` carried a path parameter whose
+  one caller never varied it.
+- The store recorded `transportFailed` and nothing read it — now wired as the supplementary signal
+  ADR-0005 §5.9 intended.
+
+Checked clean: no orphan CSS, no untracked scaffolding, no comment restating the code beneath it, every
+simulator parameter read, and the generated TypeScript unmistakably marked.
+
+It also turned up a bug that neither tooling nor the acceptance criteria would have caught: **`Graph.Path`
+could choose the origin as its own destination** when the minimum distance was zero, returning an empty
+path — which the caller reads as having nowhere to go, leaving a vehicle stationary for the rest of the
+run. That is the argument for the read-through over tooling alone, made by accident.
+
 ## Consequences
 
 **Positive**
@@ -166,8 +189,9 @@ alternative: relying on tooling alone, which finds unused code but not code that
 - **The documentation-to-code ratio is a genuine risk** and is mitigated rather than eliminated.
 - **The README depends on the deeper documents being navigable**, so a poor reading order undermines the
   whole structure.
-- **Three known-weak points are being submitted knowingly**: the one-implementation port, the size of the
-  simulator, and the manual verification of most operator-facing criteria.
+- **Two known-weak points are being submitted knowingly**: the size of the simulator, and the manual
+  verification of most operator-facing criteria. This said three; the one-implementation port was the
+  third, and it was removed rather than defended (ADR-0004 §4.2, amended).
 - The ASCII diagram is less pretty than a rendered one.
 
 ## What would make us revisit this

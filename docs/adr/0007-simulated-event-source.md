@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §7.1–§7.14
 - **Related:** `PRODUCT-SPEC.md` F10, §6.1.1, §7.1; ADR-0001, ADR-0003, ADR-0004
 - **Corrects:** `PRODUCT-SPEC.md` §7.1 — the staleness/jitter constraint was over-stated
 
@@ -61,6 +60,16 @@ graph along a path the system never learns about — no route event is emitted, 
 that status means — and occasionally head for a node beyond the boundary. If every node sat inside the
 polygon, the out-of-area behaviour that ADR-0002 and `PRODUCT-SPEC.md` both specify could never occur,
 and a specified behaviour would be undemonstrable. Easy to author, easy to forget.
+
+⚠️ **Amended in implementation: the fleet is placed and dispatched inside the service area; only a
+customer's trip may end outside it.** The requirement above is right, but satisfying it by placing the
+fleet over the whole graph meant about six vehicles started *parked* outside the boundary. That makes a
+specified state observable immediately and for the wrong reason: a vehicle parked outside the area at
+startup reads as a bug rather than as information, and it is not how a vehicle is supposed to get there.
+Initial placement and dispatch destinations are therefore drawn from nodes inside the polygon, and a
+vehicle leaves only by driving a customer out. The graph also gained a western exit — it originally
+crossed the boundary in one place only, which made leaving the area a twenty-kilometre drive and put the
+first out-of-area sighting 26 minutes into a run.
 
 ### Vehicle behaviour (§7.5, §7.6)
 
@@ -168,6 +177,13 @@ first report, then all positioned within about a second.
 
 **All parameters as constants** in the shared module, consistent with ADR-0001 §1.8. The simulation is
 hidden from the client, not from the code.
+
+⚠️ **Amended in implementation: the parameters are constants in `backend/sim`, not in the shared module.**
+"The shared module" was the wrong module. ADR-0001 §1.8's module holds the values that are *sent to the
+client*, and drain rates, dropout chances and delay windows are not part of the contract — putting them
+there would imply they were, and would place the simulation's tuning in the very payload the operator's
+legend is rendered from. Fleet size remains one constant, so the 1000-vehicle run is still one edit
+(ADR-0008 §8.10). "Hidden from the client, not from the code" is unaffected.
 
 ## Consequences
 

@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §5.1–§5.13
 - **Related:** `PRODUCT-SPEC.md` F2, F6, F8, F9, §5, §7.6; ADR-0001, ADR-0002, ADR-0004
 
 ## Context
@@ -114,6 +113,14 @@ simplification and §5.7's reliability are the same choice.
 client-side and survive untouched. And this is where ADR-0001's backend-derived staleness pays off as
 predicted: the client renders the staleness it is told about, so while disconnected nothing advances and
 no healthy vehicle is falsely blamed. §6.10 requires no code at all.
+
+⚠️ **Amended in implementation: the wire carries an age, not an observation timestamp** (`silentForMs`).
+The paragraph above is only true if what the client is told cannot rot in its hands. A timestamp would
+leave a disconnected client ageing every vehicle against its own clock, and within two intervals the map
+would blame a hundred healthy vehicles for one failed connection — the false claim `PRODUCT-SPEC.md` §7.6
+forbids, reached by the very mechanism this paragraph credits with preventing it. Sending the age as
+measured at publish is what backend-derived staleness "for free" actually requires; ADR-0001 §4.6 claimed
+the benefit without naming the condition.
 
 **Per-client buffer of depth one.** An old snapshot is worthless once a newer one exists, so replacing a
 pending message is not merely acceptable but correct. This is only available because messages are

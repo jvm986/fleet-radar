@@ -2,10 +2,10 @@
 
 Status: **signed off.** The brief's ambiguities and the gaps this document opened were resolved on
 2026-09-07 (§6). The product decisions that followed, with their reasoning, are in §7. Technical
-decisions live in `docs/adr/`; open questions live in `DECISIONS-TO-MAKE.md`.
+decisions live in `docs/adr/`, where nothing remains open.
 
-Source material: `docs/Full-Stack_Engineer_at_Vay_-_Take-Home_Coding.pdf` (the brief) and
-`docs/email.txt` (the covering email).
+Source material: the take-home brief and its covering email. §6 records every ambiguity in them
+that had to be resolved, and what it was resolved to.
 
 ---
 
@@ -65,8 +65,8 @@ needs a field agent or the trip that has gone wrong, and to get enough about it 
 The brief said in-memory storage was *acceptable*, a simulated event source *sufficient*, no
 authentication *required*, and technology choices *fully open*. These were treated as removals of
 constraint rather than directives, and each was decided explicitly: no persistence (§7.4), no
-authentication (§7.4), a simulated source hidden from the client (§6.2.5). Technology choices
-remain open in `DECISIONS-TO-MAKE.md`.
+authentication (§7.4), a simulated source hidden from the client (§6.2.5). Technology choices were
+settled in `docs/adr/` — ADR-0001 for the stack, ADR-0002 for the map.
 
 ---
 

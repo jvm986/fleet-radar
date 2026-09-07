@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §1.1–§1.9, and §4.6 ahead of its section
 - **Related:** `PRODUCT-SPEC.md` §5, §7.4, §7.5, §7.6, F6, F8, F9
 - **Constrains:** §3.14 (wire format), §5.5 (transport), §5.12, §5.13, §6.11
 
@@ -108,6 +107,13 @@ it for zone assignment, the client needs it for drawing, and two copies is one t
 Alternatives considered and declined: environment variables and a `.env` file, which would imply the
 values vary per environment when there is one environment, and add a setup step that can be got
 wrong; and geometry as a runtime-loaded file, which buys a failure mode for a file that never changes.
+
+⚠️ **Amended in implementation: the per-zone minimums live in the GeoJSON feature properties, not in the
+constants module.** The rule above puts values in one Go module because the client must be *told* them
+rather than hold its own copy, and that still governs the fleet-wide thresholds. A zone's minimum is
+different in kind: it is per-zone data, and keeping it beside the ring it applies to means the whole zone
+definition is reviewable in one diff rather than split across two files that have to agree. It is still
+served to the client from a single place, so the reason for the rule is untouched.
 
 ### Prerequisites and the run command (§1.6, §1.7)
 

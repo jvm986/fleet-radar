@@ -2,7 +2,6 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-07
-- **Decides:** `ARCHITECTURE-DECISIONS-TO-MAKE.md` §6.1–§6.11
 - **Related:** `PRODUCT-SPEC.md` F1, F3, F4, F6, F8, §5, §7.5, §7.6; ADR-0001, ADR-0002, ADR-0005
 - **Amends:** `PRODUCT-SPEC.md` §4.2 and F3 — the selected vehicle may be carried in a link
 
