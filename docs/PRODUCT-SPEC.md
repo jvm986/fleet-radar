@@ -282,6 +282,10 @@ window.
 - **Given the operator knows a vehicle's label, they can locate and select it directly** by that
   label, without hunting for it on the map. This serves the inbound half of handoff: someone else
   names a vehicle and the operator has to find it.
+- **A selected vehicle is shareable as a link.** Opening that link selects the same vehicle, so
+  handoff can be "here, look at this" rather than a spoken identifier. The link carries a selection
+  and never a filter: **a link that selects a vehicle adds information, whereas a link that filters
+  removes it** — and a colleague should not be able to send a view with most of the fleet hidden.
 - **A selection is never cleared by anything other than the operator.** A change of status, a
   vehicle going stale, or a filter that would exclude it all leave the selection intact.
 - Given a selected vehicle stops being EN_ROUTE, its route is removed and the panel makes clear
@@ -512,8 +516,9 @@ view this is a live fleet.
   numeric labels. Flagged or not flagged.
 - **Always-on vehicle labels.** Labels appear on hover and in the detail panel only.
 - **Motion as a signalling channel.** Nothing blinks, pulses or animates to attract attention.
-- **Persisting anything that could make the fleet look smaller than it is.** Filters and selection
-  never survive a load; map layer visibility may.
+- **Persisting anything that could make the fleet look smaller than it is.** No filter survives a
+  load, and no filter is ever expressible in a link. Map layer visibility persists, and the
+  selected vehicle may be carried in the URL — see below.
 - **A list view of the fleet.** The map, filters, summary and label search are the whole of it.
 - **A separate coverage view or tab.** Coverage is a layer on the one map.
 - **Ranking or ordering of flagged vehicles.** There is no surface that orders them.
