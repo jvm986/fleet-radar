@@ -8,13 +8,17 @@ import (
 // This file is the client-facing half of the contract, and the TypeScript the web app
 // compiles against is generated from it. Anything added here reaches the browser.
 //
-// Three message kinds travel on one stream: config once at the start, routes on connect
-// and on change, and a snapshot every tick (ADR-0005 §5.3). The names below are the SSE
-// event names.
+// MessageKind names one of the three kinds travelling on the one stream: config once at the start,
+// routes on connect and on change, and a snapshot every tick. These are the SSE event names
+// (ADR-0005 §5.3).
+//
+//tsgen:closed
+type MessageKind string
+
 const (
-	MessageConfig   = "config"
-	MessageRoutes   = "routes"
-	MessageSnapshot = "snapshot"
+	MessageConfig   MessageKind = "config"
+	MessageRoutes   MessageKind = "routes"
+	MessageSnapshot MessageKind = "snapshot"
 )
 
 // Config is sent once, first, on every connection — first so that it is present before
@@ -86,6 +90,8 @@ type Snapshot struct {
 // Lifecycle is the backend's completeness claim, and it travels inside the snapshot rather
 // than alongside it so there is no window in which the client holds data but not the claim
 // about that data (ADR-0005 §5.12).
+//
+//tsgen:closed
 type Lifecycle string
 
 const (
@@ -153,6 +159,8 @@ type AwaitingReport struct {
 // Both are derived from state the system already holds; neither is reported to us as a
 // problem. The two are kept distinguishable because they imply different work: low energy
 // is scheduling, silence is a possible fault and the field-agent case (PRODUCT-SPEC §2.4).
+//
+//tsgen:closed
 type AttentionReason string
 
 const (
@@ -161,7 +169,9 @@ const (
 	AttentionStale      AttentionReason = "STALE"
 )
 
-// ZoneID identifies one named zone within the service area.
+// ZoneID identifies one named zone within the service area. Zone ids come from the checked-in
+// geometry rather than from this file, so it is deliberately not a closed set — ZoneNone is the one
+// value the code itself decides.
 type ZoneID string
 
 // ZoneNone is the zone of a vehicle that is in none of them. Vehicles genuinely can be:
@@ -187,6 +197,8 @@ type ZoneCoverage struct {
 // CoverageState distinguishes zero available from merely short, because a zone below
 // target serves customers with degraded response while a zone at zero cannot serve them at
 // all, and those provoke different escalations (PRODUCT-SPEC §2.5, §7.2).
+//
+//tsgen:closed
 type CoverageState string
 
 const (

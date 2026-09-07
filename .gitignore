@@ -12,3 +12,6 @@
 # and re-including *.md keeps it markdown-only by rule rather than by care.
 transcripts/*
 !transcripts/*.md
+
+web/node_modules
+web/dist

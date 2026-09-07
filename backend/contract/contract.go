@@ -19,6 +19,8 @@ func (p Point) Lat() float64 { return p[1] }
 // VehicleStatus is what a vehicle is doing right now. These three are the whole of it:
 // there is no fourth status, and no sub-distinction within EN_ROUTE between travelling
 // towards a customer and away from one (PRODUCT-SPEC §2.1, §4.2).
+//
+//tsgen:closed
 type VehicleStatus string
 
 const (

@@ -30,7 +30,9 @@ way. §4.6 is therefore decided in this ADR rather than deferred to ADR-0004.
 4. **Go types are the single source of truth for the contract.** TypeScript types are generated from
    them and the generated output is committed.
 5. **Prerequisites are the Go toolchain, Node LTS, and `make`.** Nothing else — no Docker, no
-   database, no broker, no globally installed CLIs.
+   database, no broker, no globally installed CLIs. (Amended in implementation: the web client uses
+   pnpm, pinned through `packageManager` so corepack provides it. Corepack ships with Node, so the
+   prerequisite list is unchanged.)
 6. **`make dev` is the single command** to go from a fresh clone to a running system. `make test`,
    `make check` and `make generate` accompany it.
 7. **Derived information is computed in the backend** — attention conditions, zone assignment,

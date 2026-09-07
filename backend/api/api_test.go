@@ -80,7 +80,7 @@ func routeAssigned(t *testing.T, projector *fleet.Projector, sequence uint64, ro
 
 // message is one Server-Sent Event: the kind, and the payload.
 type message struct {
-	event string
+	event contract.MessageKind
 	data  []byte
 }
 
@@ -91,7 +91,7 @@ func parse(t *testing.T, frame []byte) message {
 	for line := range strings.SplitSeq(string(frame), "\n") {
 		switch {
 		case strings.HasPrefix(line, "event: "):
-			sent.event = strings.TrimPrefix(line, "event: ")
+			sent.event = contract.MessageKind(strings.TrimPrefix(line, "event: "))
 		case strings.HasPrefix(line, "data: "):
 			sent.data = []byte(strings.TrimPrefix(line, "data: "))
 		}
@@ -185,7 +185,7 @@ func TestAViewerIsSentConfigThenGeometryThenSnapshots(t *testing.T) {
 		}
 	}
 
-	want := []string{contract.MessageConfig, contract.MessageRoutes, contract.MessageSnapshot}
+	want := []contract.MessageKind{contract.MessageConfig, contract.MessageRoutes, contract.MessageSnapshot}
 	for i, event := range want {
 		if opening[i].event != event {
 			t.Fatalf("the stream opened with %q, %q, %q; want %v", opening[0].event, opening[1].event, opening[2].event, want)

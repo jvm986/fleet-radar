@@ -1,0 +1,22 @@
+/* Hand-written CSS, no framework and no component library: the whole operator surface is a map, a
+   summary bar, a panel, a legend and a filter control (ADR-0006 §6.6). */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.shell {
+  padding: 16px;
+}

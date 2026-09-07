@@ -228,7 +228,7 @@ func (p *Publisher) closeAll() {
 
 // frame renders one message as a Server-Sent Event. The event name is the message kind, and the
 // payload is a single line, which it always is because encoding/json never emits a raw newline.
-func frame(event string, payload any) ([]byte, error) {
+func frame(event contract.MessageKind, payload any) ([]byte, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err

@@ -31,8 +31,8 @@ has to make some of it observable.
 7. **The freshness budget is asserted for ingest→publish only**, and instrumented beyond that.
 8. **Operator-facing acceptance criteria are largely verified by a written manual checklist**, and this
    is stated as a gap rather than implied to be automated.
-9. **`gofmt`, `go vet`, `staticcheck`, `tsc --noEmit`, ESLint and Prettier, all behind `make check`** —
-   which also fails if the generated TypeScript is stale.
+9. **`gofmt`, `go vet`, `staticcheck`, `tsc --noEmit` and Biome, all behind `make check`** — which
+   also fails if the generated TypeScript is stale.
 10. **`make dev`, `make test`, `make check`**, plus a "what to look for" section in the README.
 11. **A run at 1000 vehicles before submission**, with results reported and ADR-0008 amended if
     contradicted.
@@ -133,8 +133,15 @@ criteria are automated.
 
 ### Tooling and the gate (§9.6, §9.7)
 
-`make check` runs `gofmt`, `go vet`, `staticcheck`, `tsc --noEmit` in strict mode, ESLint and Prettier —
-**and fails if the generated TypeScript is out of date.** ADR-0001's single-source-of-truth property
+`make check` runs `gofmt`, `go vet`, `staticcheck`, `tsc --noEmit` in strict mode and Biome —
+**and fails if the generated TypeScript is out of date.**
+
+⚠️ **Amended in implementation: Biome replaces ESLint and Prettier, and pnpm replaces npm.** Biome is
+one dev dependency doing what two did, with one config file rather than two and nothing to reconcile
+between a formatter and a linter that disagree — which matters here for the same reason the
+prerequisite list is short: every tool is another thing between a reviewer and the code. pnpm follows
+from the same instinct, and is pinned through `packageManager` so corepack provides it rather than a
+global install. Neither changes what the gate checks. ADR-0001's single-source-of-truth property
 holds only while drift is detectable; without that gate it silently stops being true, which is the
 failure mode that ADR flagged for itself. With no CI, `make check` is the only gate there is.
 
@@ -175,8 +182,8 @@ components need it for the same reason.
 - **The integration tests are coarse**, so a failure localises poorly.
 - **The demo-still-demonstrates test is probabilistic in nature** and pinned by the seed, so it needs
   a fixed seed to be stable — which means it verifies the *seeded* run, not every run.
-- `staticcheck` is a fourth tool, obtained via `go run` rather than installed, but it is still one more
-  thing in the loop.
+- `staticcheck` is a fourth tool, obtained as a pinned Go tool dependency rather than installed, but it
+  is still one more thing in the loop.
 
 ## What would make us revisit this
 
