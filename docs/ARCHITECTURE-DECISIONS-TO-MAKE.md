@@ -21,22 +21,27 @@ implementation — these are the ones where a wrong technical answer breaks a st
 guarantee. *(permission)* marks one where the brief explicitly allowed us something and we are
 choosing deliberately rather than accepting by default.
 
-## Planned ADRs
+## Status: closed
 
-One per section, unless a section proves to be two decisions or two sections prove to be one.
+**Every question below has been answered.** This document is retained as the record of what was asked and
+in what order, not as a live backlog. The answers, with their options and trade-offs, are in `docs/adr/` —
+see [`docs/adr/README.md`](adr/README.md) for an index.
+
+One ADR per section, as planned. Two decisions were taken ahead of their section because a dependency ran
+opposite to the ordering below; both are marked in place.
 
 | § | Area | ADR |
 |---|---|---|
-| 1 | Stack, repository and contract | `0001` |
-| 2 | Map and rendering | `0002` |
-| 3 | Inbound event model | `0003` |
-| 4 | Ingest and state | `0004` |
-| 5 | The read path | `0005` |
-| 6 | Frontend architecture | `0006` |
-| 7 | The simulated event source | `0007` |
-| 8 | Scale posture at ~1000 vehicles | `0008` |
-| 9 | Testing and verification | `0009` |
-| 10 | The submission | `0010` |
+| 1 | Stack, repository and contract | [`0001`](adr/0001-stack-repository-and-contract.md) |
+| 2 | Map and rendering | [`0002`](adr/0002-map-and-rendering.md) |
+| 3 | Inbound event model | [`0003`](adr/0003-inbound-event-model.md) |
+| 4 | Ingest and state | [`0004`](adr/0004-ingest-state-and-derivation.md) |
+| 5 | The read path | [`0005`](adr/0005-the-read-path.md) |
+| 6 | Frontend architecture | [`0006`](adr/0006-frontend-architecture.md) |
+| 7 | The simulated event source | [`0007`](adr/0007-simulated-event-source.md) |
+| 8 | Scale posture at ~1000 vehicles | [`0008`](adr/0008-scale-posture.md) |
+| 9 | Testing and verification | [`0009`](adr/0009-testing-and-verification.md) |
+| 10 | The submission | [`0010`](adr/0010-the-submission.md) |
 
 ---
 
