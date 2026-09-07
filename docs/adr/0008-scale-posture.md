@@ -122,7 +122,70 @@ the same list.
 | A binary wire format | JSON parsing becoming a measurable share of CPU; reopens ADR-0001's codegen decision |
 | Operators and territories | More vehicles than one person can supervise |
 
-## Verification (§8.10)
+## Measured (§8.10)
+
+**Run before submission, as promised, with fleet size as the only change.** One process on an Apple
+M2 Pro, seeded run, 1000 vehicles, ten minutes of running, one and then two connected viewers. Method:
+tick spacing and payload size read off a twelve-second capture of the SSE stream; event throughput
+inferred from the discard log, since duplicates are a known 2% of all deliveries; derivation timed by a
+temporary test over 200 iterations at both fleet sizes; client frame times sampled over 300 frames in
+the browser.
+
+| Component | Predicted | Measured | Verdict |
+|---|---|---|---|
+| Ingest | ~1000 events/sec, O(1) each | ~1085 events/sec sustained; nothing dropped | **Confirmed** |
+| Backend derivation | ~10,000 point-in-polygon tests/sec | 291 µs per tick — 0.15% of the tick; 33 µs at 100 vehicles | **Confirmed**, with far more headroom than "comfortable" implied |
+| Snapshot copy | ~5000 vehicle copies/sec | no measurable effect: publish spacing p50 200.0 ms, p95 201.1 ms, worst 201.7 ms | **Confirmed** |
+| Coverage | cost proportional to zone count | unchanged | **Confirmed** |
+| Whole backend | not predicted | ~2–4% of one core, 22 MB resident, unchanged by a second viewer | — |
+| **The wire** | ~220 KB per snapshot ≈ 8.8 Mbps per viewer | **274 KB ≈ 11.0 Mbps** per viewer | Direction right, **magnitude 25% optimistic** |
+| **Client main thread** | "Tight; needs incremental updates" | **60 fps held; frame times p50 16.7 ms, worst 18.4 ms; no long tasks; parse 0.33 ms and feature build 0.03 ms per snapshot** | **Wrong. Comfortable.** |
+| **The operator** | Unusable | **Unusable** — see below | **Confirmed, emphatically** |
+
+### What the measurements change
+
+**The client estimate was wrong, and wrong for an identifiable reason.** It assumed the cost was parsing
+220 KB and building a thousand features. Those together take 0.36 ms of a 200 ms budget — under a fifth of
+one percent. Whatever the client's ceiling is, it is not the main thread at this size, and the ranking's
+claim that the client is second to give way is therefore **unverified rather than confirmed**: the wire
+degrades, and after that nothing measured here bends. The right correction is to stop asserting an order
+past the wire.
+
+**Compression comes before deltas, and that reorders the deferral table.** A snapshot gzips from 274 KB to
+56 KB — 21% — taking the wire from 11.0 to 2.3 Mbps. Deltas remain the right end state, but content
+encoding is a transport setting that buys a fivefold reduction while keeping every property the snapshot
+model provides for free: self-healing on loss, correct coalescing for a slow viewer, and no resync after
+reconnect. ADR-0005 reached for deltas without considering it.
+
+**Three things gave way that this ADR did not rank, each predicted elsewhere and each now observed:**
+
+- **Per-zone minimums stopped meaning anything.** Every zone read as meeting its minimum by roughly ten
+  times over — the Strip at 209 available against a minimum of 21. §8.11 predicted exactly this; what the
+  run adds is that the coverage feature does not degrade gracefully, it goes silent, because "only problem
+  zones get ink" means a fleet ten times too large produces a blank layer.
+- **The assignment target did not scale**, so ten vehicles of a thousand were working. Routes all but
+  disappear from the map and no vehicle reached a customer in the observation window. ADR-0007 named this
+  as a product question rather than a simulator one; at this size it is the difference between the map
+  showing a working fleet and showing a car park.
+- **The road graph is too small.** A thousand vehicles over 82 intersections stack about twelve deep, so
+  the map reads as *artificial* rather than merely crowded — clumps at junctions rather than a spread
+  fleet. ADR-0007 predicted the crowding; what it did not say is that this is what makes the 1000-vehicle
+  view unconvincing as a demonstration, independently of it being unusable as an operator view.
+
+**Attention marks became wallpaper**, as `PRODUCT-SPEC.md` §7.1 predicted: 36 low-energy and 12
+not-reporting rings on screen at once, which is past the point where a flagged set can be eyeballed.
+
+**The backend cost is not per-viewer.** Two viewers left it at the same ~2% of one core, because the
+snapshot is derived and serialised once for everyone. The wire, by contrast, is per-viewer, so viewer count
+multiplies the one thing already known to be the binding constraint.
+
+### The headline stands
+
+The stated position — the technical envelope reaches ~1000 vehicles and the human envelope does not — held
+up, and by a wider margin than expected on the backend. The screenshot is the argument: a thousand markers
+on one screen is not a view of a fleet, it is a texture.
+
+## How this was to be verified (§8.10)
 
 ⚠️ **These claims are to be measured, not argued.** Fleet size is already a constant in the shared
 module (ADR-0007 §7.11), so running at 1000 vehicles requires changing one value and no code.
@@ -137,7 +200,7 @@ verification step, with the results reported in the README. Three reasons it is 
   which is the most likely way this ADR turns out to be wrong.
 
 If the run contradicts the ranking, **this ADR is amended with the measurements rather than the
-measurements being explained away.**
+measurements being explained away.** It did, in one row, and the amendment is above.
 
 ## Consequences
 

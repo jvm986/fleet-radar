@@ -112,9 +112,11 @@ Last, because it quotes the 1000-vehicle measurements (ADR-0010 §10.1).
 
 Four things agreed during the walkthrough that are not implementation steps and are easy to lose.
 
-1. **Run at 1000 vehicles before submitting.** Fleet size is one constant. Report what actually gave way,
-   and **amend ADR-0008 if the measurements contradict its ranking** rather than explaining them away
-   (ADR-0008, register §9.10).
+1. ~~**Run at 1000 vehicles before submitting.**~~ **Done.** Fleet size was one constant, as promised. The
+   measurements are in ADR-0008 §8.10, including the row where the ranking was wrong: the client main
+   thread was called tight and is comfortable. The operator ceiling was confirmed emphatically, and three
+   things gave way that the ranking did not include — per-zone minimums, the assignment target, and the
+   size of the road graph.
 2. **Regenerate and re-scan the transcript after the session ends.** Redaction cannot be done from inside
    the session being transcribed — every pass is itself recorded — so the chain runs afterwards, and the
    shipped conversation must be rebuilt from the final session file rather than refreshed from an earlier
