@@ -122,7 +122,7 @@ Four things agreed during the walkthrough that are not implementation steps and 
    the untracked `.transcript-tools/`, by that same argument: they are process, not submission.
 3. **The `FleetStore` port must still earn its keep once written.** Its justification is that it owns
    concurrency (ADR-0004 §4.2). If that turns out not to be true, or it grows methods nobody calls,
-   **delete it and use a concrete struct** rather than defending it in review (ADR-0010 §10.6).
+   **delete it and use a concrete struct** rather than defending it in review (ADR-0010 §10.5).
 4. **The documentation is only proportionate if the code is.** Ten ADRs against a thin codebase reads as
    over-documentation. The mitigation was explicitly placed on the implementation being substantial and
    clean, not on trimming the reasoning (ADR-0010 §10.2).
@@ -141,5 +141,5 @@ Not defects to fix silently — positions to be able to defend.
 
 Before submission, one rule from `PRODUCT-SPEC.md` §5: **anything in the repository that does not serve a
 feature in §3 is a defect.** File by file, ask which acceptance criterion it serves. The specific things to
-hunt are listed in ADR-0010 §10.9 — tooling finds unused code, but only reading finds code that is used and
+hunt are listed in ADR-0010 §10.8 — tooling finds unused code, but only reading finds code that is used and
 pointless.

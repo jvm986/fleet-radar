@@ -66,6 +66,9 @@ the spec when they turned out to be product decisions, registration replay was r
 removed, the storage port was introduced from outside, and two earlier claims of mine were corrected in
 place. Documents that record being wrong are harder to mistake for generated filler.
 
+`docs/prompt.txt` is retained deliberately for the same reason: it shows the working instructions that
+produced the artefact sequence, and reads as deliberate process rather than as leftover scaffolding.
+
 ### Describing the architecture (§10.3)
 
 One diagram tracing a single event end to end, with a paragraph per hop:
@@ -155,15 +158,12 @@ alternative: relying on tooling alone, which finds unused code but not code that
 - The reasoning behind every contested decision is available without being imposed.
 - The invisible behaviour — which is most of the interesting behaviour — is made observable.
 - The follow-up sessions have prepared answers for the weakest points, not just the strongest.
-- Confidentiality is handled as an explicit step rather than left to chance.
 
 **Negative / accepted costs**
 
 - **The documentation-to-code ratio is a genuine risk** and is mitigated rather than eliminated.
 - **The README depends on the deeper documents being navigable**, so a poor reading order undermines the
   whole structure.
-- **Stripping the transcript is a manual step** that has to actually happen, and it is the kind of step
-  that gets skipped at the end of a task.
 - **Three known-weak points are being submitted knowingly**: the one-implementation port, the size of the
   simulator, and the manual verification of most operator-facing criteria.
 - The ASCII diagram is less pretty than a rendered one.

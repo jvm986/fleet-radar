@@ -271,9 +271,8 @@ will look for, including the traces of AI tool use.
 - **10.2** — Do the spec, this register, and the ADRs ship with the submission?
 - **10.3** — How is the architecture and data flow described for a reader who will not run it?
 - **10.4** — Which tradeoffs do we name as the key ones, of all the ones we made?
-- **10.5** — How is the session transcript captured and shared?
-- **10.6** — What do we prepare for the code review and live coding hour?
-- **10.7** — What do we prepare for the system design hour?
-- **10.8** — How do we make deliberate omissions read as decisions rather than as gaps?
-- **10.9** — What in the repository would a reviewer reasonably read as AI slop, and how do we find
+- **10.5** — What do we prepare for the code review and live coding hour?
+- **10.6** — What do we prepare for the system design hour?
+- **10.7** — How do we make deliberate omissions read as decisions rather than as gaps?
+- **10.8** — What in the repository would a reviewer reasonably read as AI slop, and how do we find
   out before they do?
