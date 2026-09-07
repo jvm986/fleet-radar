@@ -239,7 +239,10 @@ not existence.
   work is concentrated.
 - Given a vehicle is selected and it is EN_ROUTE, its route is visually distinct from all others
   and can be traced end to end.
-- A route's destination is identifiable, so which end of the path is the goal is unambiguous.
+- **The emphasised route's destination is identifiable**, so which end of the path is the goal is
+  unambiguous when the operator is tracing it. Faint routes carry no destination marker; the
+  vehicle's own heading conveys its direction of travel. (Narrowed by ADR-0002 §2.10 — ten
+  destination markers alongside ten faint routes is clutter carrying information nobody is reading.)
 - The operator can judge how far through its journey a vehicle is from its position along the
   drawn route. No progress figure or arrival estimate is displayed.
 - Given a route update arrives, the displayed path changes to match, whether or not it is selected.
