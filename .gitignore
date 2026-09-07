@@ -1,1 +1,14 @@
 .DS_Store
+
+# transcripts/ holds only what ships: the distilled markdown conversation. The
+# apparatus that produces it -- the raw session records, the redaction and
+# distillation tools, the deny-list -- lives in .transcript-tools/ and stays
+# local, because what gets submitted should be the conversation and not the
+# machinery for cleaning it.
+.transcript-tools/
+
+# Belt and braces. distil.py writes into transcripts/, so a mistyped output path
+# is the one way a session record could still land there. Ignoring the directory
+# and re-including *.md keeps it markdown-only by rule rather than by care.
+transcripts/*
+!transcripts/*.md
