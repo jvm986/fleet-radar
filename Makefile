@@ -5,7 +5,12 @@
 # This grows as the system does: `make dev` and `make generate` arrive with the read path
 # and the web client.
 
-.PHONY: test check
+.PHONY: dev test check
+
+# The web client joins this once it exists; for now it is the backend alone, serving the stream on
+# :8080.
+dev:
+	cd backend && go run ./cmd/fleetradar
 
 test:
 	cd backend && go test ./...
