@@ -193,22 +193,37 @@ resolution is the reason several features are as thin as they are.
 
 *Serves: N1, N2, N3 · R1, R2, R5*
 
+The map occupies the full window. Nothing else holds a permanent claim on screen space.
+
 **Acceptance criteria**
 - Given the fleet is being reported, the operator sees every vehicle positioned on a map of the
   Las Vegas service area.
 - Given a vehicle's reported position changes, its position on the map changes to match.
-- Given a vehicle's heading is known, the map conveys which way that vehicle is pointing.
+- **Each vehicle is drawn as a single directional marker oriented to its heading**, so which way
+  it is pointing is readable for every vehicle, parked or moving.
+- **Status is carried by colour together with a fill treatment.** The two are redundant channels
+  for the same fact, so status remains readable without relying on colour.
+- No distinction anywhere on the map is conveyed by colour alone.
 - Given a vehicle's state and energy are known, the operator can tell — from the map alone,
   without selecting it — what it is doing and whether it warrants attention.
-- No distinction is conveyed by colour alone. Every colour-encoded distinction is also carried by
-  shape, symbol or another non-colour channel.
+- **Energy is encoded on the map only as flagged or not flagged.** The exact figure is not on the
+  map, and energy is not shaded, ramped, or labelled per vehicle.
+- **A vehicle warranting attention gains a halo and a badge identifying which condition applies**,
+  added to its marker rather than replacing any part of it, so its status stays readable.
+- **Attention-worthy vehicles are drawn above all others**, so a flagged vehicle is never
+  obscured by a healthy one.
+- Attention is never signalled by motion. Nothing blinks, pulses, or animates to draw the eye.
+- **Given the operator hovers a vehicle, they see its label and, if flagged, the reason** —
+  without having to select it. No vehicle labels are drawn on the map otherwise.
 - A legend is present and accounts for every visual distinction the map makes. Anything the map
   encodes that the legend does not explain is a defect.
 - Given ~100 vehicles are displayed, individual vehicles remain distinguishable and selectable,
   and the operator can tell dense areas from sparse ones.
 - The service area boundary and its zones are visible, so the operator can see the geography they
   are responsible for.
-- The operator's human-readable label for a vehicle is obtainable from the map.
+- **On every load the operator sees the whole fleet:** no filter applied, nothing selected, the
+  viewport framing the service area.
+- Which map layers are shown is remembered between sessions; no filter ever is (F4).
 
 ### F2 — Route visibility
 
@@ -238,10 +253,18 @@ not existence.
 
 *Serves: N2, N4, N6 · R2, R5*
 
+Detail arrives in a panel that slides in from the right when a vehicle is selected, displacing the
+map rather than covering it. When nothing is selected the panel is absent and the map has the whole
+window.
+
 **Acceptance criteria**
 - Given the operator selects a vehicle, they see its label, position, heading, state, energy
   level, how current that information is, its route if it has one, and any reason it warrants
   attention.
+- **Given the panel opens, the selected vehicle remains visible on the map** and is not displaced
+  beneath the panel or off the edge of the viewport by the map narrowing.
+- Given the panel opens or closes, the map's scale and the operator's sense of place are
+  preserved; the fleet does not appear to jump.
 - How current the information is is shown for a selected vehicle at all times, whether good or bad
   (§6.2.7).
 - Given a vehicle warrants attention for both reasons, both are stated here even though the map
@@ -262,7 +285,10 @@ not existence.
 - The operator can restrict the map to vehicles whose information has gone stale.
 - Vehicles that do not match an active filter are hidden from the map, not de-emphasised.
 - Given a filter is active, that fact is visible, the operator can tell how much of the fleet is
-  hidden, and can clear it in one action.
+  hidden, and can clear it in one action. **This indicator is load-bearing, not decorative: it is
+  what prevents a filtered map from being mistaken for the whole fleet.**
+- **No filter survives a page load.** Every load begins with the whole fleet visible, so the
+  operator can never inherit a hidden fleet from a previous session.
 - Given a filter is active and a vehicle's state changes such that it now matches or stops
   matching, the map updates accordingly.
 
@@ -319,9 +345,14 @@ not existence.
 
 *Serves: N1, N2, N3, N5 · R5*
 
+The summary sits in a collapsible overlay along the top of the map, expandable for detail and
+compact by default so it costs as little of the map as possible.
+
 **Acceptance criteria**
 - The operator can see, at a glance, how the fleet divides across states, how many vehicles need
   energy attention, and how many have gone stale.
+- The summary is legible without being expanded, and expanding it is not required to answer "how
+  is the fleet doing".
 - These figures describe the whole fleet and do not change when a filter is applied; the
   relationship between summary and filtered map is evident rather than confusing.
 - The figures change as the fleet changes.
@@ -422,6 +453,12 @@ view this is a live fleet.
   operator-or-reviewer-facing counters surface. Logs are the whole of it.
 - **Real road geometry and routing against a real road network.**
 - **Rate limiting, backpressure onto the producer, and abuse protection.**
+- **Continuous encoding of energy on the map** — no colour ramps, fill levels, or per-vehicle
+  numeric labels. Flagged or not flagged.
+- **Always-on vehicle labels.** Labels appear on hover and in the detail panel only.
+- **Motion as a signalling channel.** Nothing blinks, pulses or animates to attract attention.
+- **Persisting anything that could make the fleet look smaller than it is.** Filters and selection
+  never survive a load; map layer visibility may.
 
 ---
 
@@ -664,6 +701,56 @@ is that it stays distinguishable from a lost connection — source stopped means
 and a hundred stale vehicles; connection lost means nothing can be trusted at all. That is a test
 case, not a feature.
 
+### 7.5 What the map encodes, and what surrounds it
+
+**One directional marker per vehicle, carrying heading by orientation and status by colour plus
+fill.** Heading belongs on the base marker rather than on a separate tick, because the spec treats a
+parked vehicle's heading as meaningful — which way it will leave — so every vehicle needs it, and one
+object per vehicle is cheaper than two. Status needs a second, non-colour channel or the hard colour
+rule is broken; fill treatment supplies it and stays legible at small size where semantic glyphs — a
+person, a steering wheel — would not. *Revisit if* fill states prove too subtle in practice, in which
+case distinct outline shapes per status are the fallback, at the cost of orientation being harder to
+read.
+
+**Energy on the map is binary.** Encoding it continuously would fight the status colour, reduce a
+hundred markers to shaded noise, and imply exactly the urgency gradient that choosing a single band
+rejected. *Cost:* relative energy across the fleet is not visible at a glance, which is consistent
+with having decided relative energy does not change the operator's action.
+
+**Attention is additive and raised, never substitutive.** Recolouring a flagged marker would be the
+loudest signal and would destroy status on precisely the vehicles where status matters most — a stale
+FREE vehicle and a stale WITH_CUSTOMER vehicle are very different situations. Raising flagged
+vehicles in z-order matters more than it appears: without it, the one vehicle the operator needs to
+see can sit underneath a healthy one in a dense area, which would make the feature useless exactly
+where it is needed. Motion is excluded because someone watches this for a whole shift.
+
+**Hover for labels, not always-on labels.** A hundred overlapping labels is unreadable, but naming a
+vehicle has to be cheap because handoff needs the label and should not require committing to a
+selection. The considered alternative — labels only on flagged vehicles — targets the need precisely
+and was declined because labels then shift as vehicles move and multiply when the flagged count
+spikes.
+
+**A full-window map, with a top summary overlay and a right detail panel that displaces rather than
+covers.** A fixed panel costs known screen space; a floating overlay costs unknown information,
+because which vehicles it hides changes as the fleet moves. The top summary is the one accepted
+overlay, kept compact by default, on the grounds that it obscures a predictable strip rather than an
+arbitrary set of vehicles. ⚠️ The detail panel displacing the map means the map resizes on selection,
+which can carry the just-selected vehicle under the panel edge or off-screen — so keeping it in view
+is an acceptance criterion (F3), not an implementation detail.
+
+**Filters reset on load; layer visibility persists.** The line is that **anything capable of making
+the fleet look smaller than it is must not survive a reload**, while display preferences may. This
+matters because an operator who inherits a filter from yesterday and sees four vehicles may
+reasonably conclude the fleet is four vehicles. Resetting filters is the primary defence; F4's
+active-filter indicator is the secondary one, which is why it is specified as load-bearing.
+
+**At ~1000 vehicles:** hover-for-label degrades, because at that density the pointer resolves to an
+ambiguous cluster rather than to a vehicle. Binary energy encoding and additive attention both hold,
+but z-ordering flagged vehicles above healthy ones stops being sufficient when a hundred flagged
+vehicles overlap each other — which is the same pressure toward aggregation §7.1 and §7.2 already
+identified, arriving through a third route. The full-window map and the panel structure are
+unaffected.
+
 ---
 
 ## 8. Decisions taken without being asked
@@ -687,6 +774,15 @@ Recorded per the working ground rules.
    spec-level acceptance criteria** (F7) rather than leaving them as implementation notes. Both are
    silent-wrong-answer failures rather than visible breakages, so they needed to be stated where
    they can be tested against.
+8. **Keeping a fill treatment alongside colour for status** (F1, §7.5). "Arrow and colour" was
+   approved, but arrow carries heading, which would leave status encoded by colour alone and break
+   the hard rule agreed for it. The redundant channel is retained on that basis rather than as an
+   addition on top of what was asked for.
+9. **Reading "reset filters on reload" as scoped to filters**, leaving map layer visibility
+   persisted, on the principle stated in §7.5.
+10. **Requiring the selected vehicle to stay in view when the detail panel opens** (F3). This
+    follows from the panel displacing the map rather than covering it, and it is the kind of thing
+    that is obvious once broken and easy to omit until then.
 
 ---
 
