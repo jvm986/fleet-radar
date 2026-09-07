@@ -82,10 +82,16 @@ const (
 	// rather than a declaration that the vehicle cannot do a job (PRODUCT-SPEC §2.5).
 	DispatchMinimumBattery = 25.0
 
-	// LeavesServiceAreaChance is how often a customer drives out of the service area rather than
-	// to somewhere within it. A customer may go anywhere, and the map must not lie about it — but
-	// it has to actually happen or a specified behaviour is undemonstrable (ADR-0007 §7.12).
-	LeavesServiceAreaChance = 0.2
+	// LeavesServiceAreaChance is how often a customer drives out of the service area rather than to
+	// somewhere within it. A customer may go anywhere and the map must not lie about it, but it has to
+	// actually happen or a specified behaviour is undemonstrable (ADR-0007 §7.12).
+	//
+	// Higher than realism alone would suggest, and tuned to the point where raising it further changes
+	// nothing: the wait is not the attempt rate but the drive. The boundary is roughly fifteen
+	// kilometres from where most customers are picked up, so leaving the area takes about a quarter of
+	// an hour at city speed whatever this number says. Measured: 0.2 gives a first departure at 26
+	// minutes, 0.4 at 15, and 0.6 also at 15.
+	LeavesServiceAreaChance = 0.4
 
 	// ReassignChancePerReport re-plans a journey in progress. The operator needs the current
 	// intent rather than the original, and without this the route-update path would never run in

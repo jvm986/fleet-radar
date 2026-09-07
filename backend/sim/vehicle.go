@@ -270,6 +270,12 @@ func (v *vehicle) clearRoute() event {
 // ADR-0007 §7.12).
 func (v *vehicle) customerTrip(graph *Graph, random *rand.Rand) []NodeID {
 	if random.Float64() < LeavesServiceAreaChance {
+		// A reachable exit first: the network leaves the service area in more than one direction, and
+		// sending a vehicle in the west across the whole map to the eastern edge would make leaving the
+		// area take half an hour rather than a few minutes.
+		if path := graph.Path(v.node, graph.Outside(), 0, TripMaxMetres, random); len(path) > 0 {
+			return path
+		}
 		if path := graph.Path(v.node, graph.Outside(), 0, math.Inf(1), random); len(path) > 0 {
 			return path
 		}
@@ -277,11 +283,11 @@ func (v *vehicle) customerTrip(graph *Graph, random *rand.Rand) []NodeID {
 	return v.plan(v.node, graph, random)
 }
 
-// plan chooses somewhere within a journey's reach, and widens the search rather than giving up: a
-// vehicle with nowhere to go would sit still for the rest of the run.
+// plan chooses somewhere within a journey's reach, inside the service area, and widens the search rather
+// than giving up: a vehicle with nowhere to go would sit still for the rest of the run.
 func (v *vehicle) plan(from NodeID, graph *Graph, random *rand.Rand) []NodeID {
-	if path := graph.Path(from, nil, TripMinMetres, TripMaxMetres, random); len(path) > 0 {
+	if path := graph.Path(from, graph.Inside(), TripMinMetres, TripMaxMetres, random); len(path) > 0 {
 		return path
 	}
-	return graph.Path(from, nil, 0, math.Inf(1), random)
+	return graph.Path(from, graph.Inside(), 0, math.Inf(1), random)
 }

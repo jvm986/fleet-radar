@@ -36,9 +36,11 @@ type Graph struct {
 	// seeded run makes the same choices every time (ADR-0007 §7.11).
 	ids []NodeID
 
-	// outside is every intersection beyond the service area. The network has to extend past the
-	// boundary or a customer-driven vehicle could never leave it, and a behaviour the spec
-	// requires would be undemonstrable (ADR-0007 §7.12).
+	// inside and outside split the network at the service area boundary. The fleet is placed and
+	// dispatched inside it, because that is the ground the operator is responsible for; a vehicle gets
+	// beyond it only when a customer drives there, which is the only cause the spec gives
+	// (PRODUCT-SPEC §2.5, ADR-0007 §7.12).
+	inside  []NodeID
 	outside []NodeID
 }
 
@@ -98,9 +100,14 @@ func mustLoadGraph(raw []byte) *Graph {
 
 	area := contract.ServiceArea()
 	for _, id := range graph.ids {
-		if !contract.Contains(area, graph.positions[id]) {
+		if contract.Contains(area, graph.positions[id]) {
+			graph.inside = append(graph.inside, id)
+		} else {
 			graph.outside = append(graph.outside, id)
 		}
+	}
+	if len(graph.inside) == 0 || len(graph.outside) == 0 {
+		panic("sim: the network must have intersections both inside and outside the service area")
 	}
 	return graph
 }
@@ -157,10 +164,18 @@ func spans(road axis, crossings map[string]int, target string) bool {
 
 func (g *Graph) Position(id NodeID) contract.Point { return g.positions[id] }
 
-func (g *Graph) RandomNode(random *rand.Rand) NodeID { return g.ids[random.IntN(len(g.ids))] }
+// RandomInsideNode is where a vehicle is parked at startup: inside the area it serves. Starting some of
+// the fleet beyond the boundary would make out-of-area vehicles observable immediately, but for the wrong
+// reason — and a vehicle parked outside the service area at startup reads as a bug rather than as
+// information (ADR-0007 §7.7).
+func (g *Graph) RandomInsideNode(random *rand.Rand) NodeID {
+	return g.inside[random.IntN(len(g.inside))]
+}
 
-// Outside is every intersection beyond the service area, which is where a customer drives when
-// they leave it.
+// Inside and Outside are the two halves of the network. Journeys the scheduler assigns stay inside;
+// only a customer's own trip may end beyond the boundary.
+func (g *Graph) Inside() []NodeID { return g.inside }
+
 func (g *Graph) Outside() []NodeID { return g.outside }
 
 // Path returns the shortest road path to a destination chosen at random from candidates that lie
@@ -177,6 +192,12 @@ func (g *Graph) Path(origin NodeID, candidates []NodeID, minMetres, maxMetres fl
 
 	eligible := make([]NodeID, 0, len(candidates))
 	for _, id := range candidates {
+		// Never the origin. With a minimum of zero it would otherwise qualify, and "the shortest path
+		// from here to here" is an empty path — which the caller would read as having nowhere to go, and
+		// the vehicle would sit still for the rest of the run.
+		if id == origin {
+			continue
+		}
 		if reached, ok := distance[id]; ok && reached >= minMetres && reached <= maxMetres {
 			eligible = append(eligible, id)
 		}

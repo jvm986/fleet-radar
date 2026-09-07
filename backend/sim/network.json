@@ -1,5 +1,6 @@
 {
   "streets": [
+    { "id": "towncenter", "name": "Town Center Drive",      "at": -115.330, "from": "charleston", "to": "lakemead" },
     { "id": "hualapai",   "name": "Hualapai Way",          "at": -115.280, "from": "charleston", "to": "lakemead" },
     { "id": "rainbow",    "name": "Rainbow Boulevard",     "at": -115.243, "from": "tropicana",  "to": "craig" },
     { "id": "decatur",    "name": "Decatur Boulevard",     "at": -115.208, "from": "russell",    "to": "craig" },
@@ -17,9 +18,9 @@
     { "id": "flamingo",       "name": "Flamingo Road",          "at": 36.115, "from": "rainbow",   "to": "hollywood" },
     { "id": "springmountain", "name": "Spring Mountain Road",   "at": 36.126, "from": "decatur",   "to": "hollywood" },
     { "id": "sahara",         "name": "Sahara Avenue",          "at": 36.144, "from": "rainbow",   "to": "hollywood" },
-    { "id": "charleston",     "name": "Charleston Boulevard",   "at": 36.159, "from": "hualapai",  "to": "nellis" },
-    { "id": "bonanza",        "name": "Bonanza Road",           "at": 36.175, "from": "hualapai",  "to": "nellis" },
-    { "id": "lakemead",       "name": "Lake Mead Boulevard",    "at": 36.196, "from": "hualapai",  "to": "nellis" },
+    { "id": "charleston",     "name": "Charleston Boulevard",   "at": 36.159, "from": "towncenter", "to": "nellis" },
+    { "id": "bonanza",        "name": "Bonanza Road",           "at": 36.175, "from": "towncenter", "to": "nellis" },
+    { "id": "lakemead",       "name": "Lake Mead Boulevard",    "at": 36.196, "from": "towncenter", "to": "nellis" },
     { "id": "cheyenne",       "name": "Cheyenne Avenue",        "at": 36.219, "from": "rainbow",   "to": "nellis" },
     { "id": "craig",          "name": "Craig Road",             "at": 36.239, "from": "rainbow",   "to": "nellis" }
   ]

@@ -47,7 +47,7 @@ func New(consumer fleet.Consumer, log *slog.Logger, now func() time.Time, seed u
 		random:   random,
 	}
 	for i := range FleetSize {
-		node := graph.RandomNode(random)
+		node := graph.RandomInsideNode(random)
 		simulator.vehicles = append(simulator.vehicles, &vehicle{
 			id: uuid(random),
 			// Four digits because the label has to be sized for the fleet from the start: a
