@@ -160,6 +160,18 @@ walkthrough, and no ADR covers them. Everything else in the code is traceable to
 5. **A route id is not a control-flow guard.** ADR-0003 §3.8 notes the per-signal sequence already
    covers an out-of-order clear; the id is carried into the discard log instead, which is the purpose
    the ADR actually claims for it. An id check would be unreachable code.
+6. **The `Starting → Ready` lifecycle is not held in the store.** ADR-0004 §4.11 describes the read
+   path serving "the snapshot plus a filling flag", and replay completion is a fact about the consumer
+   rather than an event about a vehicle. Keeping it out is what lets the store stay purely
+   event-written, so §4.3's guarantee needs no exception.
+7. **The projector takes a clock too.** ADR-0009 §9.12 named three components that need one; this is a
+   fourth, and for the same reason — ADR-0003 §3.5 asks for implausible observation timestamps to be
+   logged, and a producer running ahead of the backend makes staleness unreachable while nothing on
+   screen says so.
+8. **Ingest validates the payload domain**, not just the envelope: a bearing is a bearing, a battery is
+   a proportion of capacity, a status is one of the three. This is the discard path ADR-0003 §3.11
+   specifies, tested here because ADR-0007 §7.8 keeps malformed events out of a normal run.
+
 ## The slop pass
 
 Before submission, one rule from `PRODUCT-SPEC.md` §5: **anything in the repository that does not serve a
