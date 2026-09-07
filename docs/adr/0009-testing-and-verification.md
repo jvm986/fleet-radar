@@ -142,7 +142,14 @@ prerequisite list is short: every tool is another thing between a reviewer and t
 from the same instinct, and is pinned through `packageManager` so corepack provides it rather than a
 global install. Neither changes what the gate checks. ADR-0001's single-source-of-truth property
 holds only while drift is detectable; without that gate it silently stops being true, which is the
-failure mode that ADR flagged for itself. With no CI, `make check` is the only gate there is.
+failure mode that ADR flagged for itself.
+
+⚠️ **Amended in implementation: CI arrived** — the case this ADR made for it below, and no more than
+that. A GitHub Actions workflow runs `make check` and `make test` on pushes to `main` and on pull
+requests. It supplies the toolchain and calls the same two targets a reviewer calls, so the Makefile
+remains the single definition of the gate and CI cannot check something a local run does not. Nothing
+about the tests themselves changed; the slower-tests-become-affordable half of the argument below has
+not been spent.
 
 The README's **"what to look for"** section is doing real work rather than being courtesy: it turns
 invisible correctness into something observable in about two minutes. Watch a vehicle go stale and come
@@ -198,7 +205,8 @@ a timestamp and judges it, so it is.
 - **A wiring failure actually shipping**, which is the empirical argument for a single smoke-level E2E
   test.
 - **CI arriving**, which changes `make check` from a gate a reviewer runs into one that runs itself, and
-  makes slower tests affordable.
+  makes slower tests affordable. *(Since happened, in part: the gate runs itself, the suites are
+  unchanged — see the amendment above.)*
 - **The client gaining logic worth testing** — currently it holds almost none, which is why frontend
   coverage is thin. A write path would change that immediately.
 - **The 1000-vehicle run needing to be repeatable** rather than one-off, which would make it a

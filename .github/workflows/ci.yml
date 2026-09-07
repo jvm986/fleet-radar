@@ -1,0 +1,48 @@
+# CI runs the two commands the README tells a reviewer to run, and nothing else. The Makefile stays the
+# single definition of what the gate is; this file only supplies the toolchain and presses the button
+# (ADR-0009 §9.7).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A superseded push has nothing left to say, so let it go.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # go.mod is the version of record, so CI cannot drift from a local run.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # pnpm's version comes from packageManager in web/package.json, as it does locally. It has to be on
+      # PATH before setup-node, which asks pnpm where its store is in order to cache it.
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - run: make check
+
+      # Run the suites even when the gate failed: a lint error and a broken test are separate pieces of
+      # news, and waiting a round trip for the second one wastes the first.
+      - if: ${{ !cancelled() }}
+        run: make test

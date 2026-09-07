@@ -23,7 +23,7 @@ test: web/node_modules
 	cd backend && go test ./...
 	cd web && pnpm test
 
-# The only gate there is, since there is no CI. It fails if the generated TypeScript is out of date,
+# The gate, run locally and by CI from the same target. It fails if the generated TypeScript is out of date,
 # because Go being the source of truth holds only while drift is visible (ADR-0009 §9.7).
 check: web/node_modules
 	test -z "$$(cd backend && gofmt -l .)" || { cd backend && gofmt -l . && exit 1; }
