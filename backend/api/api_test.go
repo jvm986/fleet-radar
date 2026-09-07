@@ -34,15 +34,20 @@ func newPublisher(t *testing.T) (*fleet.Projector, *Publisher) {
 // against state that arrived the way real state arrives.
 func record(t *testing.T, eventType contract.EventType, sequence uint64, payload any) fleet.Record {
 	t.Helper()
+	return recordFor(t, vehicleOne, eventType, sequence, payload)
+}
+
+func recordFor(t *testing.T, vehicleID string, eventType contract.EventType, sequence uint64, payload any) fleet.Record {
+	t.Helper()
 
 	encoded, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
 	body, err := json.Marshal(contract.Envelope{
-		EventID:    fmt.Sprintf("%s-%d", eventType, sequence),
+		EventID:    fmt.Sprintf("%s-%s-%d", vehicleID, eventType, sequence),
 		Type:       eventType,
-		VehicleID:  vehicleOne,
+		VehicleID:  vehicleID,
 		Sequence:   sequence,
 		ObservedAt: published,
 		Payload:    encoded,
@@ -52,7 +57,7 @@ func record(t *testing.T, eventType contract.EventType, sequence uint64, payload
 	}
 
 	topic, _ := eventType.Topic()
-	return fleet.Record{Topic: topic, Key: vehicleOne, Payload: body}
+	return fleet.Record{Topic: topic, Key: vehicleID, Payload: body}
 }
 
 func reportingVehicle(t *testing.T, projector *fleet.Projector, status contract.VehicleStatus) {
@@ -390,4 +395,45 @@ func TestShuttingDownReleasesOpenStreams(t *testing.T) {
 	default:
 		t.Error("a viewer was left connected after the publisher stopped")
 	}
+}
+
+// The other half of the freshness assertion. The tick bounds latency from below, so what matters is that
+// the backend can comfortably do a tick's work within one — otherwise the 250 ms guarantee would be
+// bounded by processing rather than by the tick, and the constant would be a hope rather than a budget
+// (PRODUCT-SPEC §5, ADR-0009 §9.4).
+func TestASecondOfTheFleetsEventsCostsFarLessThanTheBudget(t *testing.T) {
+	projector, publisher := newPublisher(t)
+	publisher.MarkReady()
+	publisher.subscribe()
+
+	// A second of a hundred-vehicle fleet: one position each, and a battery reading for a tenth of them.
+	const fleetSize = 100
+	records := make([]fleet.Record, 0, fleetSize*2)
+	for i := range fleetSize {
+		id := fmt.Sprintf("b6a1d0c4-2f77-4a1e-bb45-%012d", i)
+		records = append(records,
+			recordFor(t, id, contract.EventVehicleRegistered, 1, contract.RegisteredPayload{Label: fmt.Sprintf("LV-%04d", i)}),
+			recordFor(t, id, contract.EventVehiclePosition, 1, contract.PositionPayload{
+				Position: contract.Point{-115.17 + float64(i)*0.001, 36.11},
+				Heading:  90,
+			}),
+			recordFor(t, id, contract.EventVehicleStatus, 1, contract.StatusPayload{Status: contract.StatusFree}),
+		)
+		if i%10 == 0 {
+			records = append(records, recordFor(t, id, contract.EventVehicleBattery, 1, contract.BatteryPayload{Percent: 55}))
+		}
+	}
+
+	started := time.Now()
+	for _, r := range records {
+		projector.Apply(r)
+	}
+	publisher.Publish()
+	took := time.Since(started)
+
+	if took > contract.FreshnessBudget {
+		t.Errorf("a second of the fleet's events plus a publish took %v, which is not far less than the %v budget", took, contract.FreshnessBudget)
+	}
+	t.Logf("%d events plus one publish: %v, against a %v budget and a %v tick",
+		len(records), took.Round(time.Microsecond), contract.FreshnessBudget, contract.TickInterval)
 }

@@ -76,7 +76,7 @@ func status(t *testing.T, vehicleID string, sequence uint64, observedAt time.Tim
 
 // newProjector clocks well past every observation used here, so the implausible-timestamp
 // warning stays out of the way of tests that are about something else.
-func newProjector(t *testing.T, store FleetStore) (*Projector, *logCapture) {
+func newProjector(t *testing.T, store *MemoryStore) (*Projector, *logCapture) {
 	t.Helper()
 	captured := &logCapture{}
 	return NewProjector(store, slog.New(captured), func() time.Time { return at(3600) }), captured

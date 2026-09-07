@@ -51,9 +51,23 @@ all fleet state rather than carving out the roster as a special case.
 
 | Option | For | Against |
 |---|---|---|
-| **One `FleetStore` port, in-memory implementation — chosen** | The port is where synchronisation lives, so it is load-bearing today rather than speculatively. It expresses the in-memory decision as a *choice* rather than an assumption, which is what the brief's "in-memory is acceptable" invites. Tests supply a second implementation. Stays small — a handful of methods, no query language, no transactions. | An interface with one production implementation is a recognised over-abstraction, and the covering email penalises exactly that. The justification has to keep holding. |
+| **One `FleetStore` port, in-memory implementation — chosen, then removed; see below** | The port is where synchronisation lives, so it is load-bearing today rather than speculatively. It expresses the in-memory decision as a *choice* rather than an assumption, which is what the brief's "in-memory is acceptable" invites. Tests supply a second implementation. Stays small — a handful of methods, no query language, no transactions. | An interface with one production implementation is a recognised over-abstraction, and the covering email penalises exactly that. The justification has to keep holding. |
 | A concrete in-memory struct, with a README note on where persistence would go | Least code, zero speculative abstraction, nothing to defend. | The production story becomes prose rather than structure, in a submission that is explicitly asked about production scale. |
 | Port plus a real persistent implementation | Proves the seam rather than asserting it. | Requires a database or Redis, breaking the "Go, Node and make, nothing else" prerequisite, for a capability nothing in the spec needs. |
+
+⚠️ **Amended in implementation: the port was removed.** Obligation 3 was to check this justification
+against the code once it existed rather than defend it in review, and it did not survive the check. Two of
+the three reasons above turned out to be false: concurrency is a property of the concrete struct whether or
+not an interface names it, and no second implementation appeared, because the tests had no reason to
+substitute one. The third — that it expresses in-memory storage as a choice — is prose, which is exactly
+what ADR-0010 §10.9 hunts for.
+
+**What did survive, and matters more, is the read-only `Reader` interface.** That one crosses a package
+boundary, has a real second party — the serving layer — and is what makes "events are the only writer of
+state" a property of a type signature rather than a convention (§4.3). So the write surface is now the
+concrete `*MemoryStore`, and the read surface is an interface. A persistent implementation would replace
+the struct; nothing above it would change, because the only things above it are the projection and that
+read-only view.
 
 **Derived state is deliberately outside the port.** Attention flags, zone membership, coverage and
 summary counts are computed from a snapshot and never written back. This keeps the store minimal, keeps

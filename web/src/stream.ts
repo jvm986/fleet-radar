@@ -9,7 +9,7 @@ import type { Config, MessageKind, Routes, Snapshot } from "./contract.generated
  * own. On reconnect the next snapshot replaces client state wholesale, which is why there is no resync
  * protocol here: every message is complete in itself (ADR-0005 §5.8, §5.10).
  */
-export interface StreamHandlers {
+interface StreamHandlers {
   onConfig: (config: Config) => void;
   onRoutes: (routes: Routes) => void;
   onSnapshot: (snapshot: Snapshot) => void;
@@ -19,11 +19,11 @@ export interface StreamHandlers {
   onTransportError: () => void;
 }
 
-export const streamPath = "/api/stream";
+const streamPath = "/api/stream";
 
 /** open connects and returns the function that closes it again. */
-export function open(handlers: StreamHandlers, path = streamPath): () => void {
-  const source = new EventSource(path);
+export function open(handlers: StreamHandlers): () => void {
+  const source = new EventSource(streamPath);
 
   // The event names are the message kinds from the contract, so renaming one in Go stops this
   // compiling rather than silently delivering nothing.

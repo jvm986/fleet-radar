@@ -28,7 +28,7 @@ type Record struct {
 
 // Projector is the only writer of fleet state.
 type Projector struct {
-	store FleetStore
+	store *MemoryStore
 	log   *slog.Logger
 	// now exists so the implausible-timestamp check is testable. The observation clock is
 	// authoritative regardless of what it says; receive time is only ever a diagnostic
@@ -36,7 +36,7 @@ type Projector struct {
 	now func() time.Time
 }
 
-func NewProjector(store FleetStore, log *slog.Logger, now func() time.Time) *Projector {
+func NewProjector(store *MemoryStore, log *slog.Logger, now func() time.Time) *Projector {
 	return &Projector{store: store, log: log, now: now}
 }
 

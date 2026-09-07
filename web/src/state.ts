@@ -79,7 +79,7 @@ export function saveLayers(layers: Layers): void {
  * adds information, whereas a link that filters removes it.** A colleague must not be able to be sent
  * a view with most of the fleet silently hidden (ADR-0006 §6.3).
  */
-export const selectionParameter = "vehicle";
+const selectionParameter = "vehicle";
 
 export function selectionFromLocation(search: string): string | null {
   return new URLSearchParams(search).get(selectionParameter);

@@ -26,6 +26,7 @@ const panelWidth = 320;
 const noVehicles: Vehicle[] = [];
 
 const selectLifecycle = (state: FleetState) => state.snapshot?.lifecycle ?? null;
+const selectTransportFailed = (state: FleetState) => state.transportFailed;
 const selectVehicles = (state: FleetState) => state.snapshot?.vehicles ?? noVehicles;
 
 /**
@@ -38,6 +39,10 @@ export default function App() {
   const lifecycle = useSlice(selectLifecycle);
   const vehicles = useSlice(selectVehicles);
   const connection = useConnection();
+  // The transport reporting an error is a supplementary signal: it arrives sooner than the watchdog can
+  // notice silence, but a stalled connection can stay open and quiet, so the watchdog stays
+  // authoritative (ADR-0005 §5.9).
+  const transportFailed = useSlice(selectTransportFailed);
 
   // The selection is read from the URL on load, which is how a shared link arrives. Filters are not, and
   // never will be: a link that selects a vehicle adds information, whereas a link that filters removes
@@ -85,7 +90,7 @@ export default function App() {
 
         <div className="notices">
           <ViewNotice
-            current={connection.current}
+            current={connection.current && !transportFailed}
             silentForMs={connection.silentForMs}
             lifecycle={lifecycle}
             narrowed={filter.statuses.length > 0 || filter.attention.length > 0}

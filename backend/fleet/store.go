@@ -75,25 +75,20 @@ type Reader interface {
 	Snapshot() []Vehicle
 }
 
-// FleetStore holds signal state, sequence numbers and observation timestamps. It is a port
-// with one implementation because it is where synchronisation lives: writes serialise here,
-// and readers take an immutable snapshot rather than contending for a lock (ADR-0004 §4.2,
-// §4.4). If that ever stops being its justification it should collapse into a concrete
-// struct rather than be defended in review (ADR-0010 §10.6).
-type FleetStore interface {
-	Reader
-
-	Register(e contract.Envelope, p contract.RegisteredPayload) Outcome
-	SetPosition(e contract.Envelope, p contract.PositionPayload) Outcome
-	SetBattery(e contract.Envelope, p contract.BatteryPayload) Outcome
-	SetStatus(e contract.Envelope, p contract.StatusPayload) Outcome
-	SetRoute(e contract.Envelope, route contract.Route) Outcome
-	ClearRoute(e contract.Envelope) Outcome
-}
-
-// MemoryStore is the in-memory implementation. The brief allows in-memory storage; this is
-// that permission taken deliberately, with the stream as the recovery mechanism instead of
-// a database (PRODUCT-SPEC §7.4).
+// MemoryStore holds signal state, sequence numbers and observation timestamps, and it is where
+// synchronisation lives: writes serialise on the mutex, and readers take an immutable snapshot rather
+// than contending for it (ADR-0004 §4.4).
+//
+// The brief allows in-memory storage, and this is that permission taken deliberately rather than
+// assumed: in an event-sourced design the stream is the recovery mechanism, so persistence would be a
+// second answer to a question already answered (PRODUCT-SPEC §7.4). A persistent store would replace
+// this type; nothing above it would change, because the only thing above it is the projection and the
+// read-only view.
+//
+// ADR-0004 wrapped this in a FleetStore port, on the grounds that the port owned concurrency and that
+// tests would supply a second implementation. Once written, neither held: concurrency is this struct's
+// property whether or not an interface names it, and no second implementation exists. So the interface
+// was removed rather than defended, which is what ADR-0010 §10.5 asked for.
 type MemoryStore struct {
 	mu       sync.Mutex
 	vehicles map[string]*vehicleState

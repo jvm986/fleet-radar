@@ -45,12 +45,11 @@ func (l leg) status() contract.VehicleStatus {
 	return contract.StatusFree
 }
 
-// event is one signal a vehicle has produced. The vehicle allocates its own sequence numbers,
-// because per-vehicle-per-signal monotonicity is a producer obligation and this is the producer
-// (ADR-0003 §3.16). The simulator stamps the observation clock, serialises it and hands it over.
+// event is one signal a vehicle has produced. It carries no sequence number: the simulator allocates one
+// from the vehicle's counter for the event type's signal, so which register an event belongs to is stated
+// once — by contract.EventType.Signal — rather than at every place an event is produced (ADR-0003 §3.4).
 type event struct {
 	eventType contract.EventType
-	sequence  uint64
 	payload   any
 }
 
@@ -85,6 +84,8 @@ type vehicle struct {
 	sequences map[contract.Signal]uint64
 }
 
+// next is the producer's obligation: a counter per vehicle per signal, monotonic, which is the only
+// relationship the backend may rely on (ADR-0003 §3.16).
 func (v *vehicle) next(signal contract.Signal) uint64 {
 	v.sequences[signal]++
 	return v.sequences[signal]
@@ -212,13 +213,11 @@ func (v *vehicle) report(now time.Time, random *rand.Rand) []event {
 
 	events := []event{{
 		eventType: contract.EventVehiclePosition,
-		sequence:  v.next(contract.SignalPosition),
 		payload:   contract.PositionPayload{Position: v.at, Heading: v.heading},
 	}}
 	if v.reports%batteryEveryNReports == 0 {
 		events = append(events, event{
 			eventType: contract.EventVehicleBattery,
-			sequence:  v.next(contract.SignalBattery),
 			payload:   contract.BatteryPayload{Percent: v.battery},
 		})
 	}
@@ -226,7 +225,6 @@ func (v *vehicle) report(now time.Time, random *rand.Rand) []event {
 		v.reported = status
 		events = append(events, event{
 			eventType: contract.EventVehicleStatus,
-			sequence:  v.next(contract.SignalStatus),
 			payload:   contract.StatusPayload{Status: status},
 		})
 	}
@@ -249,7 +247,6 @@ func (v *vehicle) assignRoute(graph *Graph, random *rand.Rand) []event {
 	v.routeID = uuid(random)
 	return []event{{
 		eventType: contract.EventRouteAssigned,
-		sequence:  v.next(contract.SignalRoute),
 		payload: contract.Route{
 			RouteID:     v.routeID,
 			Geometry:    geometry,
@@ -263,7 +260,6 @@ func (v *vehicle) clearRoute() event {
 	v.routeID = ""
 	return event{
 		eventType: contract.EventRouteCleared,
-		sequence:  v.next(contract.SignalRoute),
 		payload:   contract.RouteClearedPayload{RouteID: cleared},
 	}
 }

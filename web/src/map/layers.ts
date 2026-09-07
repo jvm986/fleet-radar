@@ -312,7 +312,7 @@ export function setCoverageVisible(map: MapLibreMap, visible: boolean): void {
 
 /** geometry is the checked-in service area and its zones, served in config. The client draws what it is
  * given rather than holding its own copy (ADR-0001 §1.9). */
-export interface GeometryFeature {
+interface GeometryFeature {
   type: "Feature";
   properties: { kind: string; name?: string; zoneId?: string };
   geometry: { type: "Polygon"; coordinates: [number, number][][] };

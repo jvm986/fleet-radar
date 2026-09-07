@@ -20,7 +20,7 @@ import { getState } from "./store";
  */
 export const missedTicks = 3;
 
-export interface Connection {
+interface Connection {
   /** current is false when the view can no longer be trusted at all. */
   current: boolean;
   /** silentForMs is how long since the last snapshot, which is what the operator is told. */

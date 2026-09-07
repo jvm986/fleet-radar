@@ -122,9 +122,11 @@ Four things agreed during the walkthrough that are not implementation steps and 
    shipped conversation must be rebuilt from the final session file rather than refreshed from an earlier
    copy. `transcripts/` holds only what ships; the tooling, the deny-list and the session records live in
    the untracked `.transcript-tools/`, by that same argument: they are process, not submission.
-3. **The `FleetStore` port must still earn its keep once written.** Its justification is that it owns
-   concurrency (ADR-0004 §4.2). If that turns out not to be true, or it grows methods nobody calls,
-   **delete it and use a concrete struct** rather than defending it in review (ADR-0010 §10.5).
+3. ~~**The `FleetStore` port must still earn its keep once written.**~~ **Done: it did not, and it was
+   deleted.** Concurrency belongs to the concrete struct whether or not an interface names it, and no
+   second implementation ever appeared. The read-only `Reader` interface stayed, because it crosses a
+   package boundary and is what makes "events are the only writer" a type-level guarantee (ADR-0004 §4.2,
+   amended).
 4. **The documentation is only proportionate if the code is.** Ten ADRs against a thin codebase reads as
    over-documentation. The mitigation was explicitly placed on the implementation being substantial and
    clean, not on trimming the reasoning (ADR-0010 §10.2).
@@ -135,7 +137,6 @@ Not defects to fix silently — positions to be able to defend.
 
 | | Where it is argued |
 |---|---|
-| An interface with one production implementation | ADR-0004 §4.2, and obligation 3 above |
 | The simulator is the largest component | ADR-0007 consequences |
 | Most operator-facing acceptance criteria are verified by a human against a checklist | ADR-0009 §9.5 |
 

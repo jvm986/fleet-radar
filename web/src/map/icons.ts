@@ -42,7 +42,7 @@ export const coveragePatterns = {
   NONE_AVAILABLE: { id: "coverage-none", colour: "#c0392b", spacing: 4 },
 } as const;
 
-export type FillTreatment = "hollow" | "solid" | "cored";
+type FillTreatment = "hollow" | "solid" | "cored";
 
 /** markerSize is the drawn size in logical pixels: large enough to read a heading from, small enough
  * that a hundred of them stay individually distinguishable. */

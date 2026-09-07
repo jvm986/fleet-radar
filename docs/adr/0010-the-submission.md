@@ -108,9 +108,11 @@ Plus **observe-only** as the framing product tradeoff, because it is upstream of
 
 **Three critiques are predictable and are worth answers rather than improvisation:**
 
-- *Why an interface with one implementation?* The `FleetStore` port. ADR-0004 gives the answer — it owns
-  concurrency — and that answer has to still be true once the code exists. If it is not, the port should
-  collapse into a struct before submission.
+- *Why an interface with one implementation?* ~~The `FleetStore` port.~~ **Resolved: it was removed.** The
+  answer ADR-0004 gave — that the port owns concurrency — was not true once the code existed, so it
+  collapsed into a struct rather than being defended. The read-only `Reader` interface stayed, because it
+  crosses a boundary and enforces a stated guarantee. This critique now has a better answer than a defence:
+  we checked, and we deleted it.
 - *Why is the simulator this large?* Road graph, state machine, assignment scheduler, energy model,
   delivery layer, ticker. ADR-0007 justifies each; the risk is that it is the largest component in a
   submission whose subject is the backend.

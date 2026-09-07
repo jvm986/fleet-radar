@@ -76,7 +76,6 @@ func (s *Simulator) Replay() {
 	for _, vehicle := range s.vehicles {
 		s.delivery.direct(s.record(now, vehicle, event{
 			eventType: contract.EventVehicleRegistered,
-			sequence:  vehicle.next(contract.SignalRegistration),
 			payload:   contract.RegisteredPayload{Label: vehicle.label},
 		}))
 	}
@@ -174,9 +173,19 @@ func (s *Simulator) emit(now time.Time, vehicle *vehicle, events []event) {
 	}
 }
 
-// record serialises one event the way a broker would deliver it: a topic, the vehicle identity as
-// the partition key, and a body of bytes.
+// record serialises one event the way a broker would deliver it: a topic, the vehicle identity as the
+// partition key, and a body of bytes. The event type decides which topic it belongs on and which of the
+// vehicle's counters numbers it, so neither is restated by the code that produced it.
 func (s *Simulator) record(now time.Time, vehicle *vehicle, produced event) fleet.Record {
+	topic, known := produced.eventType.Topic()
+	if !known {
+		panic(fmt.Sprintf("sim: %s belongs on no topic", produced.eventType))
+	}
+	signal, known := produced.eventType.Signal()
+	if !known {
+		panic(fmt.Sprintf("sim: %s writes to no signal", produced.eventType))
+	}
+
 	payload, err := json.Marshal(produced.payload)
 	if err != nil {
 		panic(fmt.Sprintf("sim: %s payload will not serialise: %v", produced.eventType, err))
@@ -186,7 +195,7 @@ func (s *Simulator) record(now time.Time, vehicle *vehicle, produced event) flee
 		EventID:   uuid(s.random),
 		Type:      produced.eventType,
 		VehicleID: vehicle.id,
-		Sequence:  produced.sequence,
+		Sequence:  vehicle.next(signal),
 		// The observation clock, which is authoritative all the way to the operator's screen
 		// (ADR-0003 §3.5).
 		ObservedAt: now,
@@ -196,10 +205,6 @@ func (s *Simulator) record(now time.Time, vehicle *vehicle, produced event) flee
 		panic(fmt.Sprintf("sim: %s envelope will not serialise: %v", produced.eventType, err))
 	}
 
-	topic, known := produced.eventType.Topic()
-	if !known {
-		panic(fmt.Sprintf("sim: %s belongs on no topic", produced.eventType))
-	}
 	return fleet.Record{Topic: topic, Key: vehicle.id, Payload: body}
 }
 
