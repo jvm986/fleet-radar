@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Fleet Radar">
+  <!--
+    The vehicle marker, which is the one symbol this application has. The path is the same dart drawn in
+    src/map/icons.ts, at the same proportions — 0.5,0.06 to 0.88,0.94 to 0.5,0.82 to 0.12,0.94 — scaled
+    into a 20px box inset in 32. Drawn by hand here rather than generated, because a favicon is fetched
+    before any of our code runs, so it cannot come from the canvas that draws the markers.
+
+    A filled ground rather than a bare glyph: a tab strip may be light or dark, and a transparent icon
+    disappears into one of them. Slate matches the application's own chrome, and a white dart is legible at
+    16px where the marker's own blue against that ground would not be.
+  -->
+  <rect width="32" height="32" rx="7" fill="#111827" />
+  <path d="M16 7.2 23.6 24.8 16 22.4 8.4 24.8Z" fill="#ffffff" />
+</svg>

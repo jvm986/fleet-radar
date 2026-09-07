@@ -25,9 +25,20 @@ import * as fleet from "./layers";
  */
 
 /** basemapStyle is key-free hosted vector tiles: no signup and nothing for a reviewer to configure,
- * with real street context so "is that vehicle on a road" is a meaningful question (ADR-0002 §2.2). */
-const basemapStyle = "https://tiles.openfreemap.org/styles/liberty";
+ * with real street context so "is that vehicle on a road" is a meaningful question (ADR-0002 §2.2).
+ *
+ * Positron rather than Liberty. Liberty draws its roads in amber — #fc8, #fea, #e9ac77 — which is the
+ * channel the emphasised route and the EN_ROUTE marker already use, so the basemap was competing with
+ * the encoding instead of sitting behind it. Positron is uniform grey and gives the colour back. This
+ * is about hue, not brightness: the two styles' backgrounds differ by 0.05 in contrast ratio, so
+ * nothing here fixes the contrast of the ink drawn on top (ADR-0002 §2.2). */
+const basemapStyle = "https://tiles.openfreemap.org/styles/positron";
 const glyphs = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
+
+/** basemapBackground is Positron's own background colour. Everything drawn on top is contrast-checked
+ * against it, so the fallback below uses the same value and that reasoning holds whether or not the
+ * imagery ever arrives. */
+const basemapBackground = "#f2f3f0";
 
 /** fallbackStyle keeps everything except the imagery. A cosmetic dependency must not take the radar
  * down, and this state must not be confused with any of the four ways of knowing nothing: here the data
@@ -36,7 +47,9 @@ const fallbackStyle: StyleSpecification = {
   version: 8,
   glyphs,
   sources: {},
-  layers: [{ id: "background", type: "background", paint: { "background-color": "#eaeef2" } }],
+  layers: [
+    { id: "background", type: "background", paint: { "background-color": basemapBackground } },
+  ],
 };
 
 /** basemapPatience is how long the tile host gets before the radar carries on without it. */
@@ -59,6 +72,10 @@ const minZoom = 9;
  * frustrating to use (ADR-0002 §2.12). */
 const hitBox = 5;
 
+/** panelClearance is how far clear of the detail panel a nudged vehicle is left, so its marker and hover
+ * label do not sit tight against the panel's edge. */
+const panelClearance = 40;
+
 interface Props {
   selected: string | null;
   filter: Filter;
@@ -66,15 +83,32 @@ interface Props {
   /** panelWidth is fed to the camera as padding rather than compensated for at each call site, so every
    * centring and fitting operation accounts for the panel automatically (ADR-0002 §2.11). */
   panelWidth: number;
+  /** interactive is false while the view is not current. Panning to look somewhere the fleet may already
+   * have left is asking a question about now and being answered about the past (PRODUCT-SPEC F6). */
+  interactive: boolean;
   onSelect: (vehicleId: string | null) => void;
   onBasemapUnavailable: () => void;
 }
+
+/** gestures is every way the map can be moved by hand. Disabling the handlers is what actually stops the
+ * map; the inert container stops MapLibre's own zoom buttons, which are ordinary DOM buttons and know
+ * nothing about these. */
+const gestures = [
+  "scrollZoom",
+  "boxZoom",
+  "dragRotate",
+  "dragPan",
+  "keyboard",
+  "doubleClickZoom",
+  "touchZoomRotate",
+] as const;
 
 export default function FleetMap({
   selected,
   filter,
   showCoverage,
   panelWidth,
+  interactive,
   onSelect,
   onBasemapUnavailable,
 }: Props) {
@@ -85,8 +119,8 @@ export default function FleetMap({
 
   // What the map is currently being told. Held in a ref because the paint function is created once and
   // has to see the latest without the effect being torn down and rebuilt.
-  const view = useRef({ selected, filter });
-  view.current = { selected, filter };
+  const view = useRef({ selected, filter, showCoverage });
+  view.current = { selected, filter, showCoverage };
 
   useEffect(() => {
     if (container.current === null) {
@@ -130,6 +164,14 @@ export default function FleetMap({
     const install = () => {
       fleet.install(instance);
       ready.current = true;
+
+      // The coverage layer is created visible, so a stored preference to hide it has to be applied here,
+      // as soon as the layer exists. The effect that watches showCoverage cannot do it: on a fresh load it
+      // runs before the style has loaded, finds the map not ready, and never runs again — because the
+      // value it watches has not changed, only the map's readiness has. The symptom is a checkbox that
+      // reads unchecked over a map that is still shaded, which is the layer and its control disagreeing
+      // with each other in a way nothing on screen would explain (ADR-0006 §6.11).
+      fleet.setCoverageVisible(instance, view.current.showCoverage);
       paint();
     };
 
@@ -152,7 +194,9 @@ export default function FleetMap({
       install();
     });
 
-    instance.addControl(new NavigationControl({ showCompass: false }), "top-right");
+    // Bottom right, not top right: the header bar spans the full width of the map, so anything in a top
+    // corner sits underneath it.
+    instance.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
     instance.addControl(
       new ResetControl(() => {
         const state = getState();
@@ -163,7 +207,7 @@ export default function FleetMap({
           padding: 48,
         });
       }),
-      "top-right",
+      "bottom-right",
     );
 
     // Topmost feature wins, which produces a useful coincidence: because flagged vehicles are drawn
@@ -227,27 +271,59 @@ export default function FleetMap({
     }
   }, [showCoverage]);
 
-  // The panel displaces the map, so the map resizes — which can carry the just-selected vehicle under the
-  // panel edge or off screen. Keeping it in view is an acceptance criterion rather than an
-  // implementation detail (PRODUCT-SPEC F3, ADR-0002 §2.11).
+  // Frozen while the view is not current. This does not depend on the map being ready, because a
+  // connection can drop before the style has loaded and the handlers exist from construction.
   useEffect(() => {
     const instance = map.current;
-    if (instance === null || !ready.current) {
+    if (instance === null) {
+      return;
+    }
+    for (const gesture of gestures) {
+      if (interactive) {
+        instance[gesture].enable();
+      } else {
+        instance[gesture].disable();
+      }
+    }
+  }, [interactive]);
+
+  /**
+   * The panel floats over the map rather than displacing it, so the map no longer resizes when it opens
+   * and the camera has nothing to compensate for as a matter of course.
+   *
+   * ⚠️ This replaces the camera padding of ADR-0002 §2.11, which existed because the panel used to take
+   * screen space away from the map. Padding is the wrong model for an overlay: it is sticky, so it went on
+   * quietly influencing every later fitBounds, and combined with the container resize it moved the map
+   * twice for one click.
+   *
+   * So the camera moves only when it must. If the selected vehicle would sit behind the panel it is
+   * nudged clear, by exactly the distance needed and no more; if it is already visible, nothing moves at
+   * all. Keeping the selected vehicle in view is an acceptance criterion — moving the map when it is
+   * already in view is just the ground shifting under the operator (PRODUCT-SPEC F3).
+   */
+  useEffect(() => {
+    const instance = map.current;
+    if (instance === null || !ready.current || panelWidth === 0) {
       return;
     }
 
-    const padding = { top: 0, bottom: 0, left: 0, right: panelWidth };
     const vehicle = getState().snapshot?.vehicles.find(
       (candidate) => candidate.vehicleId === selected,
     );
     if (vehicle === undefined) {
-      instance.easeTo({ padding, duration: 200 });
       return;
     }
-    instance.easeTo({ center: vehicle.position, padding, duration: 300 });
+
+    // clearOf is where the panel's left edge falls, less a margin so the marker does not end up tight
+    // against it with its label running underneath.
+    const clearOf = instance.getCanvas().clientWidth - panelWidth - panelClearance;
+    const at = instance.project(vehicle.position);
+    if (at.x > clearOf) {
+      instance.panBy([at.x - clearOf, 0], { duration: 300 });
+    }
   }, [panelWidth, selected]);
 
-  return <div className="map" ref={container} />;
+  return <div className="map" ref={container} inert={!interactive} />;
 }
 
 /**

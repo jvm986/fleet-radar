@@ -10,14 +10,18 @@ interface Props {
 }
 
 /**
- * Detail arrives in a panel that displaces the map rather than covering it. A fixed panel costs known
- * screen space; a floating one costs unknown information, because which vehicles it hides changes as the
- * fleet moves (PRODUCT-SPEC §7.5).
+ * Detail arrives in a panel that floats over the map, only as tall as what it has to say. See the note on
+ * `.panel` for why it covers rather than displaces, which reverses PRODUCT-SPEC §7.5, and what the camera
+ * does instead to keep the selected vehicle out from behind it.
  *
  * A selection is the operator's, and only the operator clears it: not a status change, not going stale,
  * and not a filter that would exclude it. The alternative is more internally consistent and was
  * declined, because the panel would vanish without the operator necessarily connecting it to the filter
  * they had just applied (PRODUCT-SPEC §7.6).
+ *
+ * The selected vehicle stays in the URL, so a vehicle is still shareable by copying the address — that is
+ * ADR-0006 §6.3's whole reason for putting it there. There is no button for it here: the address bar
+ * already is one (PRODUCT-SPEC N4, N6).
  */
 export default function DetailPanel({ selected, onClear }: Props) {
   const vehicle = useSlice(useCallback((state: FleetState) => find(state, selected), [selected]));
@@ -41,16 +45,6 @@ export default function DetailPanel({ selected, onClear }: Props) {
       ) : (
         <Awaiting />
       )}
-
-      <footer>
-        <button
-          type="button"
-          className="link"
-          onClick={() => void navigator.clipboard?.writeText(window.location.href)}
-        >
-          copy a link to this vehicle
-        </button>
-      </footer>
     </aside>
   );
 }
@@ -78,16 +72,9 @@ function Reporting({ vehicle }: { vehicle: Vehicle }) {
       <dt>Zone</dt>
       <dd>{vehicle.zoneId === "NO_ZONE" ? "outside every zone" : vehicle.zoneId}</dd>
 
-      <dt>Route</dt>
-      <dd>
-        {vehicle.status === "EN_ROUTE"
-          ? vehicle.routeId === ""
-            ? "being assigned"
-            : "drawn on the map, ending at its destination"
-          : /* Not missing data: a vehicle nobody is remote-driving has no route for the system to
-               hold, and the panel has to say which of the two it is (PRODUCT-SPEC F2, F3). */
-            `none — a vehicle ${statusWording[vehicle.status]} has no planned route`}
-      </dd>
+      {/* No route row. It restated what the map and the status already say: an emphasised line ending at a
+          destination marker, or a vehicle whose status is reason enough for there being no line
+          (PRODUCT-SPEC F2). */}
 
       <dt>Attention</dt>
       <dd>

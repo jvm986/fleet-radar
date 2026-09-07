@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import DetailPanel from "./components/DetailPanel";
-import Filters from "./components/Filters";
-import Legend from "./components/Legend";
+import MapControls from "./components/MapControls";
 import Search from "./components/Search";
 import Summary from "./components/Summary";
 import ViewNotice from "./components/ViewNotice";
@@ -10,6 +9,7 @@ import type { Vehicle } from "./contract.generated";
 import FleetMap from "./map/FleetMap";
 import type { Filter, Layers } from "./state";
 import {
+  isNarrowed,
   loadLayers,
   matches,
   saveLayers,
@@ -20,7 +20,9 @@ import {
 import type { FleetState } from "./store";
 import { useSlice } from "./store";
 
-/** panelWidth is what the camera is padded by while the panel is open. */
+/** panelWidth is how much of the map's right edge the detail panel covers. The camera uses it to decide
+ * whether the selected vehicle is hidden behind the panel, not to compensate for it as a matter of
+ * course. */
 const panelWidth = 320;
 
 const noVehicles: Vehicle[] = [];
@@ -65,37 +67,76 @@ export default function App() {
 
   const onBasemapUnavailable = useCallback(() => setBasemapUnavailable(true), []);
   const select = useCallback((vehicleId: string | null) => setSelected(vehicleId), []);
+  const clearFilter = useCallback(() => setFilter(wholeFleet), []);
 
   const shown = vehicles.filter((vehicle) => matches(filter, vehicle)).length;
 
+  /**
+   * While the view is not current, the whole view is frozen: the controls go inert, and so does the map,
+   * so it cannot be panned or zoomed either. Narrowing a fleet we are no longer hearing about, or panning
+   * to look somewhere the fleet may have left, produces an answer about the past dressed as an answer
+   * about now — and the operator would have no way to tell. The fleet is drawn in grey for the same
+   * reason: every marker on it is a last known position, not a position (PRODUCT-SPEC F6, §7.6).
+   *
+   * The detail panel is deliberately left alive. It labels every value as last known, so reading it while
+   * disconnected is honest rather than misleading, and being unable to dismiss a panel reads as a hung
+   * application rather than a careful one.
+   */
+  const current = connection.current && !transportFailed;
+
   return (
-    <div className="app">
-      <div className="stage" style={selected === null ? undefined : { right: panelWidth }}>
+    <div className={current ? "app" : "app stale"}>
+      <div className="stage">
         <FleetMap
           selected={selected}
           filter={filter}
           showCoverage={layers.coverage}
           panelWidth={selected === null ? 0 : panelWidth}
+          interactive={current}
           onSelect={select}
           onBasemapUnavailable={onBasemapUnavailable}
         />
 
-        <Summary filter={filter} onFilter={setFilter} />
+        {/* The overlay is a column rather than independently positioned boxes, so everything below the
+            header follows the header's real height rather than a guessed offset. */}
+        <div className="overlay">
+          {/* One strip along the top carries everything addressing the whole fleet: the figures, the
+              filters they apply, and finding a vehicle by name. The figures and the filters are one
+              control because a figure answers "how many" and then applies the filter that answers "which
+              ones", so a separate filter bar would be the same five categories a second time
+              (PRODUCT-SPEC F8, §7.6). Search is here because it is fleet-wide too, and because it is the
+              inbound half of handoff — the operator is told a label and has to find it. */}
+          <div className="header" inert={!current}>
+            <Summary filter={filter} onFilter={setFilter} />
+            <Search onSelect={select} />
+          </div>
 
-        <div className="controls">
-          <Search onSelect={select} />
-          <Filters filter={filter} onFilter={setFilter} shown={shown} total={vehicles.length} />
-          <Legend layers={layers} onLayers={setLayers} />
+          {/* Everything below the header shares one row, so both sides clear the header without either
+              having to guess an offset. */}
+          <div className="below">
+            {/* What sits over the map is what describes the map: what is drawn, where coverage is thin,
+                and how to read it. All behind icons, so they cost a corner rather than a column. */}
+            <MapControls layers={layers} onLayers={setLayers} disabled={!current} />
+
+            {selected !== null && (
+              <DetailPanel selected={selected} onClear={() => setSelected(null)} />
+            )}
+          </div>
         </div>
 
+        {/* At the top, under the header, because the first of these says nothing on screen can be trusted
+            — and a warning that the whole view is wrong belongs where the view is read, not in a corner
+            below it. Floating rather than in the overlay column, so a notice appearing never reflows the
+            header or the controls. */}
         <div className="notices">
           <ViewNotice
-            current={connection.current && !transportFailed}
+            current={current}
             silentForMs={connection.silentForMs}
             lifecycle={lifecycle}
-            narrowed={filter.statuses.length > 0 || filter.attention.length > 0}
+            narrowed={isNarrowed(filter)}
             shown={shown}
             total={vehicles.length}
+            onClearFilter={clearFilter}
           />
           {basemapUnavailable && (
             <p className="notice">
@@ -105,8 +146,6 @@ export default function App() {
           )}
         </div>
       </div>
-
-      {selected !== null && <DetailPanel selected={selected} onClear={() => setSelected(null)} />}
     </div>
   );
 }

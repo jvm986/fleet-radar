@@ -89,6 +89,12 @@ function definitions(): LayerSpecification[] {
   return [
     // Only problem zones get any ink. In a well-covered city the layer is nearly invisible and the map
     // stays clean, with shading appearing exactly where the operator needs to look (ADR-0002 §2.9).
+    //
+    // The hatch is drawn at full opacity, and the pattern is the only thing keeping the layer quiet. It
+    // was also being held at 0.32, and the two mechanisms compounded: the strokes landed at 1.20 against
+    // the basemap, so a zone that was short of vehicles was shaded in ink nobody could see. The pattern
+    // alone covers 19% of a below-minimum zone and 38% of an empty one, which is what "quiet" was meant
+    // to mean — quiet when the fleet is fine, not invisible when it is not.
     {
       id: layers.coverage,
       type: "fill",
@@ -102,7 +108,7 @@ function definitions(): LayerSpecification[] {
           coveragePatterns.NONE_AVAILABLE.id,
           coveragePatterns.BELOW_MINIMUM.id,
         ],
-        "fill-opacity": 0.32,
+        "fill-opacity": 1,
       },
     },
 
@@ -150,7 +156,11 @@ function definitions(): LayerSpecification[] {
       source: sources.routes,
       filter: unselected(""),
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#1f2937", "line-width": 2, "line-opacity": 0.45 },
+      // 0.55 rather than 0.45: faint has to mean de-emphasised, not sub-threshold, and 0.45 put these at
+      // 2.61 against the basemap. The emphasised route still dominates on the two channels that were
+      // always doing the work — it is 1.75x the width and a different hue — so raising this does not
+      // blunt the distinction §2.7 exists to guarantee.
+      paint: { "line-color": "#1f2937", "line-width": 2, "line-opacity": 0.55 },
     },
     {
       id: layers.routeEmphasised,
