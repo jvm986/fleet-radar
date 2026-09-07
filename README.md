@@ -214,7 +214,7 @@ Depth on demand. Nobody needs to read all of this.
 | [`docs/adr/`](docs/adr/README.md) | Ten architecture decisions. The index carries a reading order, including a three-ADR path. |
 | [`docs/IMPLEMENTATION-ORDER.md`](docs/IMPLEMENTATION-ORDER.md) | What was built first and why, and the decisions taken while writing the code that no ADR covers. |
 | [`docs/ARCHITECTURE-DECISIONS-TO-MAKE.md`](docs/ARCHITECTURE-DECISIONS-TO-MAKE.md) | The questions, before they had answers. Kept as the record of what was asked. |
-| [`transcripts/`](transcripts/) | The session that produced all of it. |
+| [`transcripts/`](transcripts/) | The two sessions that produced all of it: the decisions, then the code. |
 
 Three ADRs if you only read three: [0003](docs/adr/0003-inbound-event-model.md) for the event model that
 everything else rests on, [0004](docs/adr/0004-ingest-state-and-derivation.md) for state ownership and

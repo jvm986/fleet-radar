@@ -1,6 +1,6 @@
 # Session transcript — 2026-09-07-design-decisions
 
-The conversation that produced this repository's documentation: prompts, replies, and one line naming each tool call. Thinking blocks, tool results and harness bookkeeping are omitted, and material redacted before submission reads as _[redacted]_.
+One session of the conversation that produced this repository: prompts, replies, and one line naming each tool call. Thinking blocks, tool results and harness bookkeeping are omitted, and material redacted before submission reads as _[redacted]_.
 
 ---
 
