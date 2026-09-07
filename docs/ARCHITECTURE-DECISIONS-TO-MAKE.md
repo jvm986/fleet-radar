@@ -251,6 +251,9 @@ Depends on everything above for what there is to test.
   *(spec)*
 - **9.9** — How are the four ways of knowing nothing tested, given three of them are hard to provoke
   by hand? *(spec)*
+- **9.10** — **Run the system at 1000 vehicles before submission** and report what actually gave way,
+  amending ADR-0008 if the measurements contradict its ranking. Fleet size is already a constant, so
+  this needs no code. *(spec)*
 
 ---
 
