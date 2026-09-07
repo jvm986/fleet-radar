@@ -5,7 +5,7 @@ import type {
   LayerSpecification,
   Map as MapLibreMap,
 } from "maplibre-gl";
-import type { Route, Snapshot, Vehicle, ZoneCoverage } from "../contract.generated";
+import type { Route, Vehicle, ZoneCoverage } from "../contract.generated";
 import {
   attentionMarks,
   coveragePatterns,
@@ -235,6 +235,12 @@ function definitions(): LayerSpecification[] {
         // pile-up the operator selects the vehicle that warrants attention (ADR-0002 §2.12).
         "symbol-sort-key": ["case", ["==", ["get", "attention"], "NONE"], 0, 1],
       },
+      paint: {
+        // A selected vehicle the filter excludes stays drawn, faded, because a filter narrows what the
+        // operator is looking at and does not overrule what they have asked to watch
+        // (PRODUCT-SPEC F4).
+        "icon-opacity": ["case", ["get", "outsideFilter"], 0.4, 1],
+      },
     },
     {
       id: layers.badge,
@@ -295,6 +301,13 @@ export function focus(map: MapLibreMap, vehicleID: string, routeID: string): voi
   map.setFilter(layers.routesFaint, unselected(routeID));
   map.setFilter(layers.routeEmphasised, selected(routeID));
   map.setFilter(layers.destination, selected(routeID));
+}
+
+/** setCoverageVisible turns the shading off. Shaded zones do compete with reading individual markers, so
+ * the layer can be turned off — and that preference persists, which is safe because it cannot make the
+ * fleet look smaller than it is (PRODUCT-SPEC F7). */
+export function setCoverageVisible(map: MapLibreMap, visible: boolean): void {
+  map.setLayoutProperty(layers.coverage, "visibility", visible ? "visible" : "none");
 }
 
 /** geometry is the checked-in service area and its zones, served in config. The client draws what it is
@@ -369,10 +382,15 @@ export function paintGeometry(
 /** paintFleet replaces the whole fleet, once per snapshot. Positions are drawn as reported and never
  * interpolated: a vehicle that has gone quiet would otherwise keep gliding across the map, which is
  * animating state we no longer have (ADR-0002 §2.5). */
-export function paintFleet(map: MapLibreMap, snapshot: Snapshot, routes: Map<string, Route>): void {
+export function paintFleet(
+  map: MapLibreMap,
+  vehicles: Vehicle[],
+  routes: Map<string, Route>,
+  excluded: (vehicle: Vehicle) => boolean,
+): void {
   setData(map, sources.vehicles, {
     type: "FeatureCollection",
-    features: snapshot.vehicles.map((vehicle) => ({
+    features: vehicles.map((vehicle) => ({
       type: "Feature" as const,
       geometry: { type: "Point" as const, coordinates: vehicle.position },
       properties: {
@@ -383,6 +401,7 @@ export function paintFleet(map: MapLibreMap, snapshot: Snapshot, routes: Map<str
         attention: vehicle.attention,
         badge: badgeFor(vehicle),
         routeId: vehicle.routeId,
+        outsideFilter: excluded(vehicle),
       },
     })),
   });
@@ -390,7 +409,7 @@ export function paintFleet(map: MapLibreMap, snapshot: Snapshot, routes: Map<str
   // A route is drawn only when it belongs to a vehicle on the map, so a route on screen always belongs
   // to a vehicle the operator can see. Geometry the client has not been sent simply draws nothing
   // (PRODUCT-SPEC F2, ADR-0005 §5.5).
-  const drawn = snapshot.vehicles
+  const drawn = vehicles
     .map((vehicle) => routes.get(vehicle.routeId))
     .filter((route): route is Route => route !== undefined);
 

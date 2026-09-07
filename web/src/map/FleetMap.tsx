@@ -8,19 +8,20 @@ import {
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
-import type { Vehicle } from "../contract.generated";
+import type { Route, Vehicle } from "../contract.generated";
+import { type Filter, matches } from "../state";
 import { getState, subscribe } from "../store";
 import { attentionWording } from "../wording";
 import * as fleet from "./layers";
 
 /**
- * The map is imperative and lives outside React's render cycle. It subscribes to the store directly
- * and replaces its data source once per snapshot, so a hundred vehicles moving five times a second
- * never touch the component tree — which is what makes React a safe choice here rather than merely a
- * tolerable one (ADR-0001 §1.2, ADR-0006 §6.3).
+ * The map is imperative and lives outside React's render cycle. It subscribes to the store directly and
+ * replaces its data source once per snapshot, so a hundred vehicles moving five times a second never
+ * touch the component tree — which is what makes React a safe choice here rather than merely a tolerable
+ * one (ADR-0001 §1.2, ADR-0006 §6.3).
  *
- * Only interaction travels the other way: the map is told which vehicle is selected, and never decides
- * it (ADR-0006 §6.1).
+ * Only interaction travels the other way: the map is told what is selected and what is filtered, and
+ * never decides either (ADR-0006 §6.1).
  */
 
 /** basemapStyle is key-free hosted vector tiles: no signup and nothing for a reviewer to configure,
@@ -60,17 +61,32 @@ const hitBox = 5;
 
 interface Props {
   selected: string | null;
+  filter: Filter;
+  showCoverage: boolean;
+  /** panelWidth is fed to the camera as padding rather than compensated for at each call site, so every
+   * centring and fitting operation accounts for the panel automatically (ADR-0002 §2.11). */
+  panelWidth: number;
   onSelect: (vehicleId: string | null) => void;
   onBasemapUnavailable: () => void;
 }
 
-export default function FleetMap({ selected, onSelect, onBasemapUnavailable }: Props) {
+export default function FleetMap({
+  selected,
+  filter,
+  showCoverage,
+  panelWidth,
+  onSelect,
+  onBasemapUnavailable,
+}: Props) {
   const container = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapLibreMap | null>(null);
   const ready = useRef(false);
   const framed = useRef(false);
-  const selectedRef = useRef(selected);
-  selectedRef.current = selected;
+
+  // What the map is currently being told. Held in a ref because the paint function is created once and
+  // has to see the latest without the effect being torn down and rebuilt.
+  const view = useRef({ selected, filter });
+  view.current = { selected, filter };
 
   useEffect(() => {
     if (container.current === null) {
@@ -92,21 +108,22 @@ export default function FleetMap({ selected, onSelect, onBasemapUnavailable }: P
         return;
       }
       const state = getState();
+
       if (state.config !== null) {
         const zones = fleet.zoneFeatures(state.config.serviceArea);
         const area = fleet.serviceAreaFeatures(state.config.serviceArea);
         fleet.paintGeometry(instance, zones, area, state.snapshot?.coverage ?? []);
 
-        // On every load the operator sees the whole service area, framed once the geometry describing
-        // it has arrived (PRODUCT-SPEC F1).
+        // On every load the operator sees the whole service area, framed once the geometry describing it
+        // has arrived (PRODUCT-SPEC F1).
         if (!framed.current) {
           framed.current = true;
           instance.fitBounds(fleet.bounds(area), { padding: 48, animate: false });
         }
       }
+
       if (state.snapshot !== null) {
-        fleet.paintFleet(instance, state.snapshot, state.routes);
-        applySelection(instance, state.snapshot.vehicles, selectedRef.current);
+        draw(instance, state.snapshot.vehicles, state.routes, view.current);
       }
     };
 
@@ -193,23 +210,69 @@ export default function FleetMap({ selected, onSelect, onBasemapUnavailable }: P
     };
   }, [onSelect, onBasemapUnavailable]);
 
+  // Interaction reaches the map here, and only here.
   useEffect(() => {
     const instance = map.current;
     if (instance === null || !ready.current) {
       return;
     }
-    applySelection(instance, getState().snapshot?.vehicles ?? [], selected);
-  }, [selected]);
+    const state = getState();
+    draw(instance, state.snapshot?.vehicles ?? [], state.routes, { selected, filter });
+  }, [selected, filter]);
+
+  useEffect(() => {
+    const instance = map.current;
+    if (instance !== null && ready.current) {
+      fleet.setCoverageVisible(instance, showCoverage);
+    }
+  }, [showCoverage]);
+
+  // The panel displaces the map, so the map resizes — which can carry the just-selected vehicle under the
+  // panel edge or off screen. Keeping it in view is an acceptance criterion rather than an
+  // implementation detail (PRODUCT-SPEC F3, ADR-0002 §2.11).
+  useEffect(() => {
+    const instance = map.current;
+    if (instance === null || !ready.current) {
+      return;
+    }
+
+    const padding = { top: 0, bottom: 0, left: 0, right: panelWidth };
+    const vehicle = getState().snapshot?.vehicles.find(
+      (candidate) => candidate.vehicleId === selected,
+    );
+    if (vehicle === undefined) {
+      instance.easeTo({ padding, duration: 200 });
+      return;
+    }
+    instance.easeTo({ center: vehicle.position, padding, duration: 300 });
+  }, [panelWidth, selected]);
 
   return <div className="map" ref={container} />;
 }
 
-/** applySelection resolves the selected vehicle's route, because emphasis is drawn per route while
- * selection is per vehicle. A selected vehicle with no route emphasises nothing, which is right: a
- * FREE or WITH_CUSTOMER vehicle has no route to show (PRODUCT-SPEC F2). */
-function applySelection(map: MapLibreMap, vehicles: Vehicle[], selected: string | null): void {
-  const vehicle = vehicles.find((candidate) => candidate.vehicleId === selected);
-  fleet.focus(map, selected ?? "", vehicle?.routeId ?? "");
+/**
+ * draw hands the fleet to the map. Vehicles the filter excludes are hidden rather than de-emphasised —
+ * except the selected one, which stays drawn and marked, because a filter narrows what the operator is
+ * looking at and does not overrule what they have asked to watch (PRODUCT-SPEC F4).
+ */
+function draw(
+  map: MapLibreMap,
+  vehicles: Vehicle[],
+  routes: Map<string, Route>,
+  view: { selected: string | null; filter: Filter },
+): void {
+  const excluded = (vehicle: Vehicle) => !matches(view.filter, vehicle);
+  const drawn = vehicles.filter(
+    (vehicle) => !excluded(vehicle) || vehicle.vehicleId === view.selected,
+  );
+
+  fleet.paintFleet(map, drawn, routes, excluded);
+
+  // Emphasis is drawn per route while selection is per vehicle, so the selected vehicle's route has to be
+  // resolved here. A selected vehicle with no route emphasises nothing, which is right: a FREE or
+  // WITH_CUSTOMER vehicle has no route to show (PRODUCT-SPEC F2).
+  const chosen = vehicles.find((candidate) => candidate.vehicleId === view.selected);
+  fleet.focus(map, view.selected ?? "", chosen?.routeId ?? "");
 }
 
 /** ResetControl is the way back from having panned away, which the generous bounds make possible

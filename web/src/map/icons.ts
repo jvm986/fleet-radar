@@ -106,6 +106,24 @@ export function hatchImage(colour: string, spacing: number): ImageData {
   return context.getImageData(0, 0, size, size);
 }
 
+/**
+ * dataUrl renders one of the images above as an image the legend can show. The legend is a defect if it
+ * does not account for every distinction the map makes, so it draws its swatches with this same code
+ * rather than with a hand-made copy that could drift from it (PRODUCT-SPEC F1).
+ */
+export function dataUrl(image: ImageData): string {
+  const element = document.createElement("canvas");
+  element.width = image.width;
+  element.height = image.height;
+
+  const context = element.getContext("2d");
+  if (context === null) {
+    throw new Error("no 2d canvas context, so the legend cannot be drawn");
+  }
+  context.putImageData(image, 0, 0);
+  return element.toDataURL();
+}
+
 function canvas(logicalSize: number): { context: CanvasRenderingContext2D; size: number } {
   const size = logicalSize * scale;
   const element = document.createElement("canvas");

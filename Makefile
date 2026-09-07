@@ -19,8 +19,9 @@ dev: web/node_modules
 generate:
 	cd backend && go run ./cmd/tsgen > ../$(GENERATED)
 
-test:
+test: web/node_modules
 	cd backend && go test ./...
+	cd web && pnpm test
 
 # The only gate there is, since there is no CI. It fails if the generated TypeScript is out of date,
 # because Go being the source of truth holds only while drift is visible (ADR-0009 §9.7).

@@ -29,6 +29,14 @@ export interface FleetState {
    * noticing that snapshots have stopped arriving (ADR-0005 §5.9).
    */
   transportFailed: boolean;
+
+  /**
+   * lastSnapshotAt is when the newest snapshot arrived, by the client's own clock. It is used only to
+   * notice that snapshots have stopped — never to age anything the backend told us, which would
+   * reintroduce the false staleness that deriving in the backend exists to avoid
+   * (PRODUCT-SPEC §7.6).
+   */
+  lastSnapshotAt: number | null;
 }
 
 let state: FleetState = {
@@ -36,6 +44,7 @@ let state: FleetState = {
   snapshot: null,
   routes: new Map(),
   transportFailed: false,
+  lastSnapshotAt: null,
 };
 
 const listeners = new Set<() => void>();
@@ -64,7 +73,8 @@ export function connect(): () => void {
     onConfig: (config: Config) => publish({ ...state, config }),
     onRoutes: (routes: Routes) =>
       publish({ ...state, routes: new Map(routes.routes.map((route) => [route.routeId, route])) }),
-    onSnapshot: (snapshot: Snapshot) => publish({ ...state, snapshot, transportFailed: false }),
+    onSnapshot: (snapshot: Snapshot) =>
+      publish({ ...state, snapshot, transportFailed: false, lastSnapshotAt: Date.now() }),
     onTransportError: () => publish({ ...state, transportFailed: true }),
   });
 }
@@ -74,8 +84,10 @@ export function connect(): () => void {
  * changes by value. A snapshot arrives five times a second, so subscribing to the whole of it would
  * re-render the tree at tick rate for numbers that mostly have not moved (ADR-0006 §6.4).
  *
- * The selector has to be stable — declared at module scope, or memoised — because React subscribes
- * with it.
+ * The selector has to be stable — declared at module scope, or memoised — because React subscribes with
+ * it. It also has to *return* a stable value: a selector that builds a fresh array or object on every
+ * read can never be memoised, and React reports it as an endless stream of new snapshots. Subscribe to a
+ * slice and derive in the render, or pass an equality function.
  */
 export function useSlice<T>(
   select: (state: FleetState) => T,
