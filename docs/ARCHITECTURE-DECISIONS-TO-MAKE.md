@@ -123,8 +123,9 @@ Depends on §3 for what is being consumed.
 - **4.4** — How is concurrent access to fleet state handled?
 - **4.5** — Which parts of what the operator sees are computed once for everyone, and which per
   client? *(spec)*
-- **4.6** — Is derived information — attention conditions, coverage, summary figures — computed in
-  the backend or in the browser? *(spec)*
+- **4.6** — *Decided early in ADR-0001: in the backend.* §1.8 and §1.9 could not be answered without
+  it, so the dependency ran opposite to this document's ordering. What remains open here is how that
+  derivation is structured and when it runs, not where it happens.
 - **4.7** — What does the backend do when events arrive faster than it can process them?
 - **4.8** — What does the backend serve before it has learned the fleet, and how does it know when it
   has? *(spec)*
