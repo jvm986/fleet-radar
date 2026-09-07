@@ -507,7 +507,8 @@ view this is a live fleet.
 - **Any claimed accessibility conformance level.** The colour rule in F1 is a hard requirement;
   everything else is best effort.
 - **Localisation.** One locale, English, metric units throughout.
-- **Deployment, containerisation, and CI.** Runs locally only.
+- **Deployment and containerisation.** Runs locally only. (CI was later added, as one workflow that
+  runs `make check` and `make test` — see ADR-0009 §9.7.)
 - **Production observability** — metrics, tracing, log shipping, alerting, and any
   operator-or-reviewer-facing counters surface. Logs are the whole of it.
 - **Real road geometry and routing against a real road network.**

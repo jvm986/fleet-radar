@@ -27,6 +27,9 @@ make check    # gofmt, vet, staticcheck, Biome, tsc — and fails if the generat
 make generate # regenerate that TypeScript from the Go contract
 ```
 
+GitHub Actions runs the first two of those on every push to `main` and every pull request — the same
+targets, not a second definition of them, so a green run means the same thing a clean local run does.
+
 An internet connection is used at run time for the map imagery. If the tile host is unreachable the fleet
 still draws, on a plain background, with a notice saying so.
 
