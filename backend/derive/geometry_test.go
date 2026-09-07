@@ -34,3 +34,17 @@ func TestTheZonesAreWhereTheirNamesSay(t *testing.T) {
 		})
 	}
 }
+
+// A zone reaching outside the area it belongs to is nonsense nothing else would catch: it would
+// count vehicles towards coverage for ground the operator is not responsible for, and it would
+// draw a boundary crossing the one boundary that is supposed to contain it.
+func TestEveryZoneLiesInsideTheServiceArea(t *testing.T) {
+	area := contract.ServiceArea()
+	for _, zone := range contract.Zones() {
+		for _, corner := range zone.Boundary {
+			if !contains(area, corner) {
+				t.Errorf("zone %q has a corner at %v outside the service area", zone.ID, corner)
+			}
+		}
+	}
+}
