@@ -1,9 +1,8 @@
 package sim
 
 import (
-	"time"
-
 	"fleetradar/contract"
+	"time"
 )
 
 // Every tunable of the simulation is a constant here: the simulation is hidden from the client,
@@ -120,11 +119,24 @@ const (
 	// interval is what makes a late event genuinely late.
 	//
 	// It stays safe for staleness for the reason §7.8 gives: staleness compares the clock against
-	// the newest observation received, and only 2% of events are held, so a newer observation still
-	// lands on time. The late one arrives, is discarded as superseded, and staleness is untouched.
-	// Only delaying every event would trip it.
-	DuplicateChance = 0.02
-	DelayChance     = 0.02
+	// the newest observation received, and only a small share of events are held, so a newer
+	// observation still lands on time. The late one arrives, is discarded as superseded, and staleness
+	// is untouched. Only delaying every event would trip it.
+	//
+	// ⚠️ Retuned down from 0.02 after measuring what it did to the log. The fleet emits about 110 events
+	// a second — a hundred positions plus battery — so 2% each produced 100 discards in 25 seconds, or
+	// 4 a second, and 100 of the 103 lines the backend logged. Every one of them was correct behaviour
+	// correctly reported, which is precisely the problem: a log that is 97% healthy discard is a log
+	// nobody reads, and the one warning that mattered would scroll past unseen.
+	//
+	// These cannot go to zero. ADR-0007 §7.8's argument is that at-least-once and unordered delivery
+	// should be exercised by the running system rather than only asserted in tests, and that argument
+	// still holds — a reviewer should be able to watch it happen. 0.0005 keeps roughly one duplicate and
+	// one late event every ten seconds: visible within seconds of starting, and no longer the only thing
+	// in the log. It also leaves the demo test's assertion a wide margin, since five simulated minutes is
+	// about 33,000 events and so around sixteen of each (ADR-0009 §9.6).
+	DuplicateChance = 0.0005
+	DelayChance     = 0.0005
 	DelayMin        = contract.ReportingInterval * 3 / 2
 	DelayMax        = contract.ReportingInterval * 5 / 2
 )

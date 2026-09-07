@@ -6,7 +6,6 @@ import {
   statusIcons,
   vehicleImage,
 } from "../map/icons";
-import type { Layers } from "../state";
 import type { FleetState } from "../store";
 import { useSlice } from "../store";
 import { attentionWording, coverageWording, statusWording } from "../wording";
@@ -28,11 +27,6 @@ const swatches = {
   ),
 };
 
-interface Props {
-  layers: Layers;
-  onLayers: (layers: Layers) => void;
-}
-
 /**
  * The legend accounts for every visual distinction the map makes; anything the map encodes that this
  * does not explain is a defect (PRODUCT-SPEC F1).
@@ -40,14 +34,14 @@ interface Props {
  * The thresholds are stated here, beside the thing they define, and they are the ones the backend sent.
  * The client holds no copy of its own, so the legend cannot state a line the system is not applying —
  * which is a correctness requirement rather than tidiness (ADR-0001 §1.8, PRODUCT-SPEC §7.6).
+ *
+ * It is the body of a panel rather than a standing column; MapControls owns whether it is open.
  */
-export default function Legend({ layers, onLayers }: Props) {
+export default function Legend() {
   const thresholds = useSlice(selectThresholds);
 
   return (
-    <section className="legend">
-      <h2>Legend</h2>
-
+    <div className="legend">
       <ul>
         <li>
           <img src={swatches.FREE} alt="" width={18} height={18} />
@@ -113,15 +107,6 @@ export default function Legend({ layers, onLayers }: Props) {
           minimum is not shaded at all.
         </li>
       </ul>
-
-      <label className="toggle">
-        <input
-          type="checkbox"
-          checked={layers.coverage}
-          onChange={(event) => onLayers({ ...layers, coverage: event.target.checked })}
-        />
-        Shade zones that are short
-      </label>
-    </section>
+    </div>
   );
 }

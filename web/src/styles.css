@@ -36,12 +36,11 @@ button {
   overflow: hidden;
 }
 
-/* The panel displaces the stage rather than covering it, so the map resizes and no vehicle is hidden
-   under it (PRODUCT-SPEC §7.5). */
+/* The stage is the whole window and stays that. The detail panel floats over it rather than displacing it,
+   so opening a panel never resizes the map (PRODUCT-SPEC §7.5 — see the note on .panel). */
 .stage {
   position: absolute;
   inset: 0;
-  transition: right 200ms ease;
 }
 
 .map {
@@ -49,49 +48,75 @@ button {
   inset: 0;
 }
 
-/* The summary is the one accepted overlay: a predictable strip, rather than a floating panel whose hidden
-   vehicles change as the fleet moves (PRODUCT-SPEC §7.5). */
-.summary {
+/* One column holding the header and then the controls, so the controls follow the header's real height
+   instead of a guessed offset. Transparent to the pointer, with each box claiming events back, so
+   dragging the map still works in the gaps between them. */
+.overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
-  padding: 6px 10px;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
 }
 
-.summary-row {
+/* The header is the one accepted overlay: a predictable strip, rather than a floating panel whose hidden
+   vehicles change as the fleet moves (PRODUCT-SPEC §7.5). It carries everything addressing the whole
+   fleet — the figures, the filters they apply, and finding a vehicle by name. */
+.header {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 6px 10px;
+  pointer-events: auto;
 }
 
-.summary-detail {
+/* One row, and it stays one row. Nothing here wraps: a strip that grows a second line moves the map under
+   the operator, and it does so at the moment they have just clicked something. On a window too narrow for
+   the figures, the row scrolls rather than reflowing — the strip's height is what must not change, and
+   scrolling is the one way to absorb overflow without changing it. */
+.summary {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding: 6px 2px 2px;
-  color: var(--muted);
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
-.summary-detail .short {
-  color: #b45309;
-  font-weight: 600;
+/* The groups are the filter model made visible: within one, the choices are alternatives; across them,
+   they intersect (PRODUCT-SPEC F4). The divider is what says the boundary is meaningful rather than
+   spacing that happened to fall there. */
+.group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding-left: 8px;
+  margin-left: 4px;
+  border-left: 1px solid var(--line);
 }
 
-.figure,
-.chip {
+.figure-total {
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.figure {
   background: none;
   border: 1px solid transparent;
   border-radius: 3px;
   padding: 2px 6px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.figure:hover,
-.chip:hover {
+.figure:hover {
   border-color: var(--line);
 }
 
@@ -100,15 +125,24 @@ button {
   color: #92400e;
 }
 
-.figure-static {
-  color: var(--muted);
-  padding: 2px 6px;
-}
-
-.chip.on {
+/* An active figure is filled rather than merely outlined. It carries a count the operator reads, so the
+   state has to be unmistakable at a glance without the number becoming harder to read — and it is paired
+   with aria-pressed, because which filters are active is the fact F4 requires to be visible, and that
+   cannot be left to colour (PRODUCT-SPEC F4). */
+.figure.on {
   background: var(--ink);
   border-color: var(--ink);
   color: #fff;
+}
+
+.figure.on.marked {
+  color: #fcd34d;
+}
+
+.figure-static {
+  color: var(--muted);
+  padding: 2px 6px;
+  white-space: nowrap;
 }
 
 .link {
@@ -120,23 +154,93 @@ button {
   color: var(--muted);
 }
 
-.controls {
-  position: absolute;
-  top: 46px;
-  left: 10px;
-  width: 250px;
-  max-height: calc(100% - 60px);
-  overflow-y: auto;
+/* Everything under the header shares one row: controls left, detail panel right. min-height: 0 is what
+   makes their scrolling work — without it a flex item refuses to shrink below its content, so an open
+   legend taller than the window would overflow the page instead of scrolling inside itself. */
+.below {
+  flex: 0 1 auto;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
 }
 
-.controls > section {
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-height: 100%;
+  min-height: 0;
+  pointer-events: auto;
+}
+
+/* The icons sit side by side, so opening one does not move the others, and the panel appears beneath the
+   row rather than beneath an individual icon. */
+.control-bar {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+/* Square, map-control sized, matching the zoom buttons in the opposite corner so the two read as the same
+   kind of thing. */
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 29px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  color: var(--ink);
+}
+
+.icon-button.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+/* Sized to its contents rather than to a constant, so the layers panel is as wide as one switch and the
+   legend is as wide as it needs, up to a cap that keeps its longer notes wrapping sensibly. */
+.control-body {
+  width: max-content;
+  max-width: 250px;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 8px;
+}
+
+.coverage ul {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.coverage li {
+  padding: 2px 0;
+}
+
+.coverage .short {
+  color: #92400e;
+}
+
+/* Search lives in the header, so it is sized here rather than filling a column. */
+.search {
+  position: relative;
+  flex: 0 0 200px;
 }
 
 .search input {
@@ -152,15 +256,38 @@ button {
   padding: 0;
 }
 
+/* The results float over the map rather than growing the strip. A header that changed height as the
+   operator typed would shift the map beneath them mid-search. */
+.search ul {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 4px 6px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(17, 24, 39, 0.12);
+}
+
+.search li {
+  padding: 2px 0;
+}
+
+/* The rules divide the legend into its four groups. The first needs none: there is no heading above it any
+   more, so a border there would draw a line under the panel's own edge. */
 .legend ul {
   border-top: 1px solid var(--line);
   padding-top: 6px;
   margin-top: 6px;
 }
 
-.legend h2 {
-  font-size: 13px;
-  margin: 0;
+.legend ul:first-child {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
 }
 
 .legend li {
@@ -209,39 +336,59 @@ button {
   flex: none;
 }
 
+/* The switch that shades short zones, at the foot of the coverage panel. Ruled off, so it reads as
+   following from the numbers above it rather than as another entry in the list. */
 .toggle {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
-}
-
-.filter-group {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-
-/* Load-bearing rather than decorative: this is what prevents a filtered map from being mistaken for the
-   whole fleet (PRODUCT-SPEC F4). */
-.narrowed {
-  margin: 6px 0 0;
+  white-space: nowrap;
   padding-top: 6px;
   border-top: 1px solid var(--line);
 }
 
+/* While the view is not current, the whole view says so. `inert` in the markup is what actually disables
+   things — appearance alone would leave every control clickable and in the tab order, which is worse than
+   not greying at all, because it would look disabled and behave otherwise.
+
+   Greyscale rather than opacity. These boxes sit over the map, so fading them makes the map show through
+   and the chrome harder to read at exactly the moment it is carrying a warning. Desaturating leaves them
+   solid and legible while draining the colour that was doing the signalling.
+
+   The map is included, so every marker on it reads as a last known position rather than a position — the
+   whole of what is drawn is stale, not just the parts with controls attached.
+
+   Placed after the rules it overrides, so the cascade needs no help from specificity. */
+.app.stale .map,
+.app.stale .header,
+.app.stale .controls {
+  filter: grayscale(1);
+}
+
+.app.stale .header,
+.app.stale .controls {
+  color: var(--muted);
+}
+
+/* The map keeps a plain cursor while frozen, since nothing under it can be selected. */
+.app.stale .map {
+  cursor: default;
+}
+
+/* Below the header rather than at the foot of the map. The first of these notices says nothing on screen
+   can be trusted, which belongs where the operator reads the fleet. The offset is a constant and safe as
+   one, because the header is one row by design and cannot grow (see .summary). */
 .notices {
   position: absolute;
-  bottom: 12px;
+  top: 46px;
   left: 50%;
+  z-index: 3;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 620px;
+  width: max-content;
+  max-width: min(620px, calc(100% - 24px));
 }
 
 .notice {
@@ -257,16 +404,36 @@ button {
   border-color: #f87171;
 }
 
+/* Load-bearing rather than decorative: this is what prevents a filtered map from being mistaken for the
+   whole fleet (PRODUCT-SPEC F4). Quieter than the notices above it, because unlike them it describes
+   something the operator did on purpose and can undo. */
+.notice.narrowed {
+  background: var(--panel);
+  border-color: var(--line);
+  color: #92400e;
+}
+
+/* ⚠️ The panel floats over the map and is only as tall as its contents, which reverses PRODUCT-SPEC §7.5's
+   "a fixed panel costs known screen space, whereas a floating overlay costs unknown information, because
+   which vehicles it hides changes as the fleet moves".
+
+   That argument still holds, and this accepts its cost knowingly for two reasons. Displacing the map meant
+   resizing the map container on every selection, which moved the whole fleet under the operator at the
+   moment they had just clicked one vehicle. And the panel is short: it hides a corner rather than a full
+   column, so there is less unknown information to lose. What the argument was protecting is instead
+   protected by the camera, which nudges a vehicle clear of the panel only when it would actually be
+   behind it (FleetMap.tsx). */
 .panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
   width: 320px;
-  background: #fff;
-  border-left: 1px solid var(--line);
-  padding: 10px 12px;
+  max-height: 100%;
+  min-height: 0;
   overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.12);
+  pointer-events: auto;
 }
 
 .panel header {
@@ -295,9 +462,4 @@ button {
 
 .panel dd {
   margin: 0;
-}
-
-.panel footer {
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
 }
