@@ -137,6 +137,29 @@ Not defects to fix silently — positions to be able to defend.
 | The simulator is the largest component | ADR-0007 consequences |
 | Most operator-facing acceptance criteria are verified by a human against a checklist | ADR-0009 §9.5 |
 
+## Decisions taken while implementing
+
+Recorded per the working ground rules: these were settled while writing the code, not during the
+walkthrough, and no ADR covers them. Everything else in the code is traceable to a document.
+
+1. **The wire carries an age, not an observation timestamp** (`silentForMs`). A timestamp would leave a
+   disconnected client ageing every vehicle against its own clock, and within two intervals the map
+   would blame a hundred healthy vehicles for one failed connection — the false claim `PRODUCT-SPEC.md`
+   §7.6 forbids. ADR-0001 §4.6 says backend derivation gets that behaviour "for free"; sending the age
+   rather than the timestamp is what "for free" actually requires.
+2. **A vehicle is drawn only once position, battery and status have each been reported**; until then it
+   is awaiting a first report. Arrival order across topics is not guaranteed, so partial knowledge is
+   reachable, and the spec models two categories rather than three. Cost: for well under a second at
+   startup, a vehicle with a known position reads as awaiting its first report.
+3. **Staleness is measured against the vehicle's own telemetry only** — position, battery, status.
+   Registration is excluded because a replayed roster entry is not the vehicle speaking, and route
+   events are excluded because they come from the assignment system. Either would let a silent vehicle
+   look fresh.
+4. **Per-zone minimums live in the GeoJSON properties**, not the constants module. They are per-zone
+   data, and keeping them with the geometry makes the whole zone definition reviewable in one diff.
+5. **A route id is not a control-flow guard.** ADR-0003 §3.8 notes the per-signal sequence already
+   covers an out-of-order clear; the id is carried into the discard log instead, which is the purpose
+   the ADR actually claims for it. An id check would be unreachable code.
 ## The slop pass
 
 Before submission, one rule from `PRODUCT-SPEC.md` §5: **anything in the repository that does not serve a

@@ -1,0 +1,139 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "service-area",
+        "name": "Las Vegas"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-115.300, 36.100],
+            [-115.240, 36.050],
+            [-115.120, 36.030],
+            [-115.030, 36.090],
+            [-115.020, 36.190],
+            [-115.060, 36.280],
+            [-115.180, 36.300],
+            [-115.280, 36.240],
+            [-115.310, 36.170],
+            [-115.300, 36.100]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "zone",
+        "zoneId": "strip",
+        "name": "The Strip",
+        "minimumAvailable": 12
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-115.196, 36.088],
+            [-115.152, 36.093],
+            [-115.148, 36.128],
+            [-115.163, 36.148],
+            [-115.192, 36.140],
+            [-115.196, 36.088]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "zone",
+        "zoneId": "downtown",
+        "name": "Downtown",
+        "minimumAvailable": 8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-115.168, 36.152],
+            [-115.128, 36.155],
+            [-115.124, 36.182],
+            [-115.152, 36.190],
+            [-115.172, 36.174],
+            [-115.168, 36.152]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "zone",
+        "zoneId": "east-las-vegas",
+        "name": "East Las Vegas",
+        "minimumAvailable": 6
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-115.120, 36.095],
+            [-115.060, 36.100],
+            [-115.050, 36.145],
+            [-115.090, 36.155],
+            [-115.118, 36.135],
+            [-115.120, 36.095]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "zone",
+        "zoneId": "north-las-vegas",
+        "name": "North Las Vegas",
+        "minimumAvailable": 6
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-115.180, 36.198],
+            [-115.110, 36.196],
+            [-115.080, 36.235],
+            [-115.130, 36.262],
+            [-115.185, 36.240],
+            [-115.180, 36.198]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "zone",
+        "zoneId": "summerlin",
+        "name": "Summerlin",
+        "minimumAvailable": 4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-115.292, 36.142],
+            [-115.248, 36.136],
+            [-115.234, 36.174],
+            [-115.258, 36.202],
+            [-115.288, 36.190],
+            [-115.292, 36.142]
+          ]
+        ]
+      }
+    }
+  ]
+}
