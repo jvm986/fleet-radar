@@ -80,6 +80,16 @@ plan for the system to hold.
 drops. The alternative — a per-vehicle probability of being dispatched — would produce ten *on average*
 with visible excursions. A scheduler makes the brief's stated condition an invariant.
 
+⚠️ **Amended in implementation: the return leg is assigned by the scheduler rather than entered on
+arrival.** As drawn above, a finished customer trip becomes the EN_ROUTE-to-parking leg directly — and
+that transition is not the scheduler's, so the invariant it exists to hold does not hold. Measured, the
+count settles at ten dispatched plus everyone driving back: **sixteen, not ten.** So the customer's
+drop-off leaves the vehicle parked and available where it stands, and the return journey is dispatched
+like any other. Both meanings of EN_ROUTE the spec gives — towards a customer, or away again — still
+occur, every transition into it is now the scheduler's, and the count holds at ten. It is also the more
+realistic model: a vehicle idle at a drop-off is available to the next customer near it, not obliged to
+drive back empty first.
+
 ⚠️ **Energy recovery exists because without it the fleet dies.** Charging locations are out of scope, so
 drain alone means every vehicle reaches zero and a demo left running for half an hour ends with a dead
 fleet. A vehicle below roughly 5% while FREE therefore stays parked and its battery rises. It remains
@@ -126,6 +136,18 @@ delivery lag approaching the threshold, trips it.
 So the real constraint is narrower than recorded: per-event delay applied to a subset is safe at any
 plausible probability; uniform delay is not. The spec note has been corrected rather than left to
 misdirect a future implementer into tuning conservatively for the wrong reason.
+
+⚠️ **Amended in implementation: 200–400 ms is too short to reorder anything, so the window is
+1.5–2.5 reporting intervals.** The reasoning above is right and the number contradicts it. A delayed
+event is only out of order if something overtakes it, and the next observation of the same signal is a
+whole reporting interval away — so at 1 Hz a 400 ms delay still arrives first, is applied as the newest,
+and demonstrates nothing. Measured: duplicates appeared in the log and superseded observations never
+did.
+
+The window is therefore expressed as a multiple of the reporting interval rather than in milliseconds,
+which is the same argument the staleness threshold is expressed in reports: a flat duration silently
+stops meaning anything the moment the cadence moves. The safety argument is unaffected — only 2% of
+events are held, so a newer observation still lands on time and staleness never trips.
 
 ### Cadence mechanics (§7.14)
 

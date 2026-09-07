@@ -168,7 +168,7 @@ func silentFor(lastObserved, now time.Time) int64 {
 // trap PRODUCT-SPEC §7.2 recorded. Deriving removes the invalidation entirely (ADR-0004 §4.9).
 func zoneFor(zones []contract.Zone, position contract.Point) contract.ZoneID {
 	for _, zone := range zones {
-		if contains(zone.Boundary, position) {
+		if contract.Contains(zone.Boundary, position) {
 			return zone.ID
 		}
 	}
@@ -176,24 +176,6 @@ func zoneFor(zones []contract.Zone, position contract.Point) contract.ZoneID {
 	// between zones, or outside the service area because a customer drove there — and any
 	// aggregation that assumed otherwise would silently drop them (ADR-0004 §4.10).
 	return contract.ZoneNone
-}
-
-// contains is the crossing-number test: a ray cast east from the point crosses a simple
-// polygon's boundary an odd number of times if and only if the point is inside it. The zones
-// are small, simple polygons, so this is the whole of what is needed.
-func contains(boundary []contract.Point, position contract.Point) bool {
-	inside := false
-	for i := range len(boundary) - 1 {
-		from, to := boundary[i], boundary[i+1]
-		if (from.Lat() > position.Lat()) == (to.Lat() > position.Lat()) {
-			continue
-		}
-		crossing := from.Lng() + (position.Lat()-from.Lat())/(to.Lat()-from.Lat())*(to.Lng()-from.Lng())
-		if position.Lng() < crossing {
-			inside = !inside
-		}
-	}
-	return inside
 }
 
 // coverageState distinguishes nothing available from merely short, because a zone below target

@@ -171,6 +171,23 @@ walkthrough, and no ADR covers them. Everything else in the code is traceable to
 8. **Ingest validates the payload domain**, not just the envelope: a bearing is a bearing, a battery is
    a proportion of capacity, a status is one of the three. This is the discard path ADR-0003 §3.11
    specifies, tested here because ADR-0007 §7.8 keeps malformed events out of a normal run.
+9. **Simulator parameters live in `backend/sim`, not the contract package.** ADR-0007 §7.13 puts them in
+   "the Go constants module", and ADR-0001 §1.8's module is the one whose values are *sent to the
+   client*. Drain rates and dropout chances are not part of the contract and putting them there would
+   imply they were. Fleet size is still one constant, so the 1000-vehicle run is still one edit
+   (ADR-0008 §8.10).
+10. **The zones were enlarged, and their minimums set from measurement rather than from area.** As first
+    drawn, the five districts held 30 of the road network's 82 intersections, so two thirds of available
+    vehicles were in no zone and coverage described a minority of the fleet — not what "subdivided into
+    named zones" should mean (`PRODUCT-SPEC.md` §2.5). Enlarged, they hold 60, and the gaps between
+    them are still real, so a vehicle inside the service area and in no zone remains reachable — the
+    case §7.2 called the likeliest bug in the design.
+
+    The minimums are then measured, not reasoned: intersection counts predicted availability badly,
+    because vehicles do not distribute evenly over a road network. Set against observed availability,
+    about a third of moments have at least one district short — coverage stays quiet when the fleet is
+    fine and inks where it is not, which is what ADR-0002 §2.9 designed for. Both ADR-0007's numbers
+    that this exposed as wrong are amended in that ADR rather than only here.
 
 ## The slop pass
 

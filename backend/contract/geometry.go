@@ -50,6 +50,28 @@ func Zones() []Zone { return zones }
 // (ADR-0007 §7.12, ADR-0009 §9.6).
 func ServiceArea() []Point { return serviceArea }
 
+// Contains is the crossing-number test: a ray cast east from the position crosses a simple
+// polygon's boundary an odd number of times if and only if the position is inside it. The service
+// area and the zones are small, simple polygons, so this is the whole of what is needed.
+//
+// It lives here because the geometry does, and because three callers need it for three different
+// questions: which zone a vehicle is in, whether the zones sit inside the service area, and
+// whether a road leaves it.
+func Contains(boundary []Point, position Point) bool {
+	inside := false
+	for i := range len(boundary) - 1 {
+		from, to := boundary[i], boundary[i+1]
+		if (from.Lat() > position.Lat()) == (to.Lat() > position.Lat()) {
+			continue
+		}
+		crossing := from.Lng() + (position.Lat()-from.Lat())/(to.Lat()-from.Lat())*(to.Lng()-from.Lng())
+		if position.Lng() < crossing {
+			inside = !inside
+		}
+	}
+	return inside
+}
+
 type geoFeature struct {
 	Properties struct {
 		Kind    string `json:"kind"`
