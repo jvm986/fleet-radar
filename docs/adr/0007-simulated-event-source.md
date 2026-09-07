@@ -55,6 +55,50 @@ system is genuinely exercised.
 Routes are shortest paths over the graph between the vehicle's current node and a chosen destination,
 so §7.4 falls out of §7.3 rather than being a separate mechanism.
 
+⚠️ **Amended after implementation: the geometry is real OpenStreetMap data, extracted by
+`cmd/roadgen`. The routing is still ours.** The table above is two decisions wearing one row. Rejecting
+a routing *engine* was right and still is — OSRM or Valhalla is a Docker dependency and a `.osm.pbf`,
+and the "Go, Node and make" prerequisite is worth more than turn costs. But rejecting the engine never
+required inventing the *data*, and the row's "the geometry is invented" cost was accepted as though it
+did. `roadgen` queries Overpass by hand, converts the result to the same artefact the simulator already
+loaded, and commits it: no runtime dependency, no new toolchain, nothing for a reviewer to configure,
+and Dijkstra still ours.
+
+The scale changes by two orders of magnitude — **80 hand-authored intersections become 22,398
+intersections and 29,429 roads**, 2.2 MB committed — and three things follow that the authored grid
+could not express:
+
+- **Roads carry their own shape.** A route step is a polyline, so a vehicle rounds a bend instead of
+  cutting the corner, and the route drawn for the operator lies along the street it is drawn over.
+- **One-way roads are modelled**, because the data says which they are: **79% of roads in this
+  extract**, which is not an artefact but Las Vegas — its arterials are overwhelmingly divided
+  carriageways, and OSM tags each direction separately. A vehicle returning along a street now uses
+  the other carriageway, as it would.
+- **Dijkstra needs a heap**, and stops once the frontier passes the journey's maximum distance. §7.3's
+  linear scan was justified by "under a hundred intersections and once per assignment", which was true
+  and is now false — the ADR named this as the trigger, and it fired.
+
+**Two earlier amendments dissolve.** The warning below about remembering to author nodes outside the
+polygon, and the western exit added because the graph originally crossed the boundary once: the real
+network leaves the service area in every direction, 6,019 of its intersections are already outside it,
+and `LeavesServiceAreaChance` came *down* from 0.4 to 0.15 as a result. Measured over an hour: first
+departure at **6.9 minutes** against 15 before, at most four vehicles outside at once. The old constant
+had to be high because the wait was the drive, not the dice; now the dice is the constraint again.
+
+**What is lost is worth naming, because it was the authored file's best property.** `network.json` read
+as a list of streets, and an authoring mistake — a road claiming a crossing that does not exist — was a
+load-time panic. Generated data can be neither. So the invariants moved into `roadgen`, which keeps
+only the largest set of intersections that can all reach one another (a bbox cuts roads mid-street and
+one-way tags make reachability directional, so the raw extract contains dead ends a vehicle could drive
+into and never leave), and refuses to emit a network with no intersections outside the service area, or
+a zone containing none. The loader still range-checks every index. The reachability test that used to
+route from all 80 intersections is now two flood fills, forward and backward, which is the same claim
+in time that scales.
+
+**It is a derived database under ODbL**, so the artefact carries its attribution, licence, the exact
+Overpass query and the date in a `source` block. The basemap was already OpenStreetMap, so the
+obligation is not new, but a committed extract makes it ours to state rather than the tile host's.
+
 ⚠️ **The graph must include nodes outside the service area polygon.** WITH_CUSTOMER vehicles follow the
 graph along a path the system never learns about — no route event is emitted, which is precisely what
 that status means — and occasionally head for a node beyond the boundary. If every node sat inside the
@@ -203,8 +247,11 @@ legend is rendered from. Fleet size remains one constant, so the 1000-vehicle ru
 **Negative / accepted costs**
 
 - **Pointless serialisation** in-process, accepted to keep the seam honest.
-- **The road graph is hand-authored**, so it is both effort and invented data, and its coverage
-  determines what the simulation can express — including whether out-of-area is possible at all.
+- ~~**The road graph is hand-authored**, so it is both effort and invented data, and its coverage
+  determines what the simulation can express — including whether out-of-area is possible at all.~~
+  **Superseded:** the geometry is real and generated. The cost that replaces it is a 2.2 MB artefact in
+  the repository, and a regeneration that has to be a deliberate act — OpenStreetMap changes daily, so a
+  build-time fetch would make two clones of the same commit disagree about the world.
 - **Energy recovery is a fiction the operator can see.** It is plausible, but it is not derived from any
   modelled charging infrastructure.
 - **Staleness is synthetic.** Nothing about the simulated world causes silence, so the rate of it is a
@@ -222,8 +269,9 @@ legend is rendered from. Fleet size remains one constant, so the 1000-vehicle ru
   and makes §7.2's byte boundary the actual boundary.
 - **Real recorded telemetry** replacing the simulation, which would remove the graph, the state machine
   and the energy fiction at once, and would make ADR-0003's route-deviation decision worth reopening.
-- **The graph proving too small** to make movement look plausible, or too small to place vehicles across
-  every zone — which would make coverage untestable in parts of the map.
+- ~~**The graph proving too small** to make movement look plausible, or too small to place vehicles across
+  every zone — which would make coverage untestable in parts of the map.~~ **This happened, and is
+  resolved above.** The smallest zone now contains 1,492 intersections.
 - **Charging being modelled**, which replaces the energy-recovery fiction with a real mechanism and
   changes what "may need charging" means product-side.
 - **Any operator-facing state becoming unreachable** after tuning, which is a regression in the
@@ -241,8 +289,12 @@ legend is rendered from. Fleet size remains one constant, so the 1000-vehicle ru
 - **In-process serialisation stops being negligible.** At a hundred vehicles the wasted encode/decode is
   invisible; at a thousand it is real CPU spent purely to keep a seam honest, and the honest answer at
   that point is to make the seam real by putting a broker behind it.
-- **The road graph needs to grow**, or a thousand vehicles will be visibly stacked on a small number of
-  edges — which would make the map read as artificial in a way a hundred vehicles conceal.
+- ~~**The road graph needs to grow**, or a thousand vehicles will be visibly stacked on a small number of
+  edges — which would make the map read as artificial in a way a hundred vehicles conceal.~~ **No longer
+  the constraint:** 29,429 roads absorb a thousand vehicles without stacking. What replaces it is
+  routing cost — a thousand vehicles is a thousand journeys to plan, and the distance-limited Dijkstra
+  is what makes that affordable. The next thing to reach for is caching routes between the same pair of
+  intersections, which at that fleet size stops being a coincidence.
 - **The assignment scheduler needs its target scaled** — ~10 EN_ROUTE out of 100 is a tenth of the fleet
   working; whether the ratio or the absolute number is the right thing to hold is a product question,
   not a simulator one.

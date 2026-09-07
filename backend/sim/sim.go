@@ -81,7 +81,8 @@ func (s *Simulator) Replay() {
 	}
 	s.log.Info("replayed the fleet roster",
 		slog.Int("vehicles", len(s.vehicles)),
-		slog.Int("intersections", len(s.graph.ids)),
+		slog.Int("intersections", s.graph.Intersections()),
+		slog.Int("roads", s.graph.Roads()),
 		slog.Int("intersectionsOutsideServiceArea", len(s.graph.Outside())),
 	)
 }

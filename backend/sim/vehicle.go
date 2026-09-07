@@ -61,8 +61,10 @@ type vehicle struct {
 	node    NodeID
 	at      contract.Point
 	heading float64
-	// path is the intersections still to be reached, excluding the one just passed.
-	path    []NodeID
+	// path is the roads still to be driven, excluding the one just finished. Each step carries the
+	// road's own shape, and the vehicle consumes it point by point, so it follows the curve of the
+	// street rather than the straight line between intersections.
+	path    []Step
 	routeID string
 
 	battery  float64
@@ -103,21 +105,37 @@ func (v *vehicle) advance(dt time.Duration, graph *Graph, random *rand.Rand) []e
 	remaining := Speed * dt.Seconds()
 	travelled := 0.0
 	for remaining > 0 && len(v.path) > 0 {
-		target := graph.Position(v.path[0])
-		step := metresBetween(v.at, target)
-		if step > 0 {
+		step := &v.path[0]
+
+		// A step is the road's shape followed point by point and then the intersection at the end of
+		// it. Only arriving at the intersection moves the vehicle's idea of where it is on the network:
+		// a shape point is somewhere along a road, which is not somewhere a journey can be replanned
+		// from.
+		target := graph.Position(step.Node)
+		if len(step.Via) > 0 {
+			target = step.Via[0]
+		}
+
+		distance := metresBetween(v.at, target)
+		if distance > 0 {
 			v.heading = bearingTo(v.at, target)
 		}
-		if step > remaining {
+		if distance > remaining {
 			v.at, _ = towards(v.at, target, remaining)
 			travelled += remaining
 			break
 		}
 
-		v.at, v.node = target, v.path[0]
+		v.at = target
+		travelled += distance
+		remaining -= distance
+
+		if len(step.Via) > 0 {
+			step.Via = step.Via[1:]
+			continue
+		}
+		v.node = step.Node
 		v.path = v.path[1:]
-		travelled += step
-		remaining -= step
 	}
 
 	v.battery = max(v.battery-travelled/1000*DrainPerKm, 0)
@@ -189,11 +207,13 @@ func (v *vehicle) replan(graph *Graph, random *rand.Rand) []event {
 	}
 
 	ahead := v.path[0]
-	rest := v.plan(ahead, graph, random)
+	rest := v.plan(ahead.Node, graph, random)
 	if len(rest) == 0 {
 		return nil
 	}
-	v.path = append([]NodeID{ahead}, rest...)
+	// The step in progress is kept as it stands, part-driven shape and all, because a vehicle halfway
+	// along a road cannot be rerouted from anywhere but the end of it.
+	v.path = append([]Step{ahead}, rest...)
 	return v.assignRoute(graph, random)
 }
 
@@ -238,10 +258,15 @@ func (v *vehicle) assignRoute(graph *Graph, random *rand.Rand) []event {
 		return nil
 	}
 
+	// The route the operator is shown is the road geometry, not a line between intersections, so it
+	// lies along the streets it is drawn over. It starts where the vehicle is now rather than at the
+	// last intersection, because a route drawn from behind the marker reads as the vehicle having
+	// overshot it (PRODUCT-SPEC §2.2).
 	geometry := make([]contract.Point, 0, len(v.path)+1)
 	geometry = append(geometry, v.at)
-	for _, id := range v.path {
-		geometry = append(geometry, graph.Position(id))
+	for _, step := range v.path {
+		geometry = append(geometry, step.Via...)
+		geometry = append(geometry, graph.Position(step.Node))
 	}
 
 	v.routeID = uuid(random)
@@ -268,7 +293,7 @@ func (v *vehicle) clearRoute() event {
 // entirely. A customer driving may go anywhere, so the map must not pretend otherwise — and it has
 // to actually happen, or a specified behaviour is undemonstrable (PRODUCT-SPEC §2.5,
 // ADR-0007 §7.12).
-func (v *vehicle) customerTrip(graph *Graph, random *rand.Rand) []NodeID {
+func (v *vehicle) customerTrip(graph *Graph, random *rand.Rand) []Step {
 	if random.Float64() < LeavesServiceAreaChance {
 		// A reachable exit first: the network leaves the service area in more than one direction, and
 		// sending a vehicle in the west across the whole map to the eastern edge would make leaving the
@@ -285,7 +310,7 @@ func (v *vehicle) customerTrip(graph *Graph, random *rand.Rand) []NodeID {
 
 // plan chooses somewhere within a journey's reach, inside the service area, and widens the search rather
 // than giving up: a vehicle with nowhere to go would sit still for the rest of the run.
-func (v *vehicle) plan(from NodeID, graph *Graph, random *rand.Rand) []NodeID {
+func (v *vehicle) plan(from NodeID, graph *Graph, random *rand.Rand) []Step {
 	if path := graph.Path(from, graph.Inside(), TripMinMetres, TripMaxMetres, random); len(path) > 0 {
 		return path
 	}

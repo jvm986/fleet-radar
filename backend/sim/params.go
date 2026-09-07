@@ -86,12 +86,17 @@ const (
 	// somewhere within it. A customer may go anywhere and the map must not lie about it, but it has to
 	// actually happen or a specified behaviour is undemonstrable (ADR-0007 §7.12).
 	//
-	// Higher than realism alone would suggest, and tuned to the point where raising it further changes
-	// nothing: the wait is not the attempt rate but the drive. The boundary is roughly fifteen
-	// kilometres from where most customers are picked up, so leaving the area takes about a quarter of
-	// an hour at city speed whatever this number says. Measured: 0.2 gives a first departure at 26
-	// minutes, 0.4 at 15, and 0.6 also at 15.
-	LeavesServiceAreaChance = 0.4
+	// Lowered when the network became real, and the reason is worth keeping because it inverts the
+	// original argument. Over the authored grid this had to be set high — 0.4 — and raising it further
+	// changed nothing, because the grid crossed the boundary in one place and leaving the area was a
+	// fifteen-kilometre drive whatever the attempt rate was: the wait was the drive, not the dice.
+	//
+	// Real geometry leaves the service area in every direction, so the drive is minutes rather than a
+	// quarter of an hour and the dice is the constraint again. Measured over an hour at 0.15: the first
+	// departure at 6.9 minutes, at most four vehicles outside at once, and someone outside for about
+	// three quarters of the run. Higher would make out-of-area the normal condition rather than the
+	// exception it is meant to read as.
+	LeavesServiceAreaChance = 0.15
 
 	// ReassignChancePerReport re-plans a journey in progress. The operator needs the current
 	// intent rather than the original, and without this the route-update path would never run in
