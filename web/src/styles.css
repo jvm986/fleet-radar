@@ -15,8 +15,44 @@ body,
 body {
   font-family: system-ui, sans-serif;
   font-size: 14px;
+  color: #111827;
 }
 
-.shell {
-  padding: 16px;
+.app {
+  position: relative;
+  height: 100%;
+}
+
+/* The map occupies the full window. Nothing else holds a permanent claim on screen space
+   (PRODUCT-SPEC F1). */
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+/* The one accepted overlay: a predictable strip along the top, rather than a floating panel whose
+   hidden vehicles change as the fleet moves (PRODUCT-SPEC §7.5). */
+.readout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid #d1d5db;
+}
+
+.readout p {
+  margin: 0;
+}
+
+.notice {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  margin: 0;
+  padding: 8px 12px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 4px;
 }
