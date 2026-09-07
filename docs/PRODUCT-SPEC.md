@@ -274,6 +274,15 @@ window.
 - The operator can tell at all times which vehicle is selected, and can clear the selection.
 - Given a vehicle is selected, the operator can obtain enough about it to act outside this
   system — to name it to someone else, or to say where to go.
+- **Given the operator knows a vehicle's label, they can locate and select it directly** by that
+  label, without hunting for it on the map. This serves the inbound half of handoff: someone else
+  names a vehicle and the operator has to find it.
+- **A selection is never cleared by anything other than the operator.** A change of status, a
+  vehicle going stale, or a filter that would exclude it all leave the selection intact.
+- Given a selected vehicle stops being EN_ROUTE, its route is removed and the panel makes clear
+  that there is no route because none exists, not because data is missing.
+- Given a selected vehicle has gone stale, the panel says so and for how long, and continues to
+  show its last known values as last known.
 
 ### F4 — Narrowing the fleet
 
@@ -291,6 +300,14 @@ window.
   operator can never inherit a hidden fleet from a previous session.
 - Given a filter is active and a vehicle's state changes such that it now matches or stops
   matching, the map updates accordingly.
+- **Filters combine: alternatives within one category, and intersection across categories.**
+  Choosing two states means either of them; choosing a state and an energy condition means both.
+  This is what makes "available vehicles I cannot rely on" expressible.
+- **Given the selected vehicle does not match the active filter, it remains drawn**, visibly
+  marked as being outside the current filter. A filter narrows what the operator is looking at; it
+  does not overrule what they have explicitly asked to watch.
+- Given a combination of filters matches no vehicles, the operator is told that the filter excludes
+  everything — distinct from the fleet being empty and from the view being disconnected (F6).
 
 ### F5 — Vehicles needing energy attention
 
@@ -319,12 +336,24 @@ window.
 - How current a vehicle's information is is surfaced only when it is a problem, except for the
   selected vehicle, where it is always shown.
 - Given the connection between browser and backend is lost, the operator is told the *whole view*
-  is stale, and is not left looking at a frozen map that appears live. This is distinguishable from
-  a single vehicle going stale.
+  is stale by a persistent, view-level indication that states how long since contact. They are not
+  left looking at a frozen map that appears live.
+- **Connection health and vehicle health are separate concerns and are never conflated.** While the
+  view is disconnected, per-vehicle staleness does not advance: vehicles are not marked stale
+  because *we* stopped hearing from the backend. Blaming a hundred healthy vehicles for one
+  connection failure is a false claim, not a conservative one.
 - Given the event source stops entirely, the fleet correctly becomes stale vehicle by vehicle, and
   this is distinguishable from a lost connection.
 - Given the backend has not yet learned the whole fleet, the operator is told the view is still
   filling rather than shown a partial fleet as though it were complete.
+
+**The four ways of knowing nothing.** Each is separately distinguishable to the operator, and none
+of them is ever rendered as simply an empty map:
+
+1. **Filling** — connected, but the backend has not yet learned the fleet.
+2. **Empty** — connected and current, and there genuinely are no vehicles.
+3. **Disconnected** — nothing on screen can be trusted, and we cannot know what is true.
+4. **Excluded by filter** — the operator did this, and clearing the filter undoes it (F4).
 
 ### F7 — Reading coverage
 
@@ -340,6 +369,13 @@ window.
   when a vehicle changes status without moving.
 - Vehicles outside the service area, or otherwise belonging to no zone, are still visible on the
   map and are not silently dropped from any total the operator can cross-check.
+- **Zone boundaries and names are always drawn.** Coverage state is a map layer, shown by default
+  and able to be turned off, because shaded zones compete with reading individual markers.
+- Coverage is read alongside the vehicles, on the same map. It is not a separate view — "this zone
+  is short and there are three vehicles just outside it" is the observation that matters, and
+  separating the two would destroy it.
+- Which layers are visible is remembered between sessions; this is a display preference, not a
+  filter, and cannot cause the fleet to appear smaller than it is.
 
 ### F8 — Fleet situation summary
 
@@ -357,6 +393,14 @@ compact by default so it costs as little of the map as possible.
   relationship between summary and filtered map is evident rather than confusing.
 - The figures change as the fleet changes.
 - The figures reconcile with the unfiltered map; a figure that disagrees with it is a defect.
+- **Selecting a figure applies the corresponding filter**, so the summary answers "how many" and
+  then serves as the way to ask "which ones".
+- **A figure does not change when its own filter is applied.** The summary always describes the
+  whole fleet, so selecting "12 stale" leaves the figure reading 12 while the map narrows to those
+  12. A figure that changed to match its own filter would be a defect.
+- The legend states the thresholds it depends on inline — the energy level that counts as low, and
+  the silence that counts as stale — so the operator knows what lines are being drawn on their
+  behalf without going looking.
 
 ### F9 — Event-driven ingest and live propagation
 
@@ -459,6 +503,9 @@ view this is a live fleet.
 - **Motion as a signalling channel.** Nothing blinks, pulses or animates to attract attention.
 - **Persisting anything that could make the fleet look smaller than it is.** Filters and selection
   never survive a load; map layer visibility may.
+- **A list view of the fleet.** The map, filters, summary and label search are the whole of it.
+- **A separate coverage view or tab.** Coverage is a layer on the one map.
+- **Ranking or ordering of flagged vehicles.** There is no surface that orders them.
 
 ---
 
@@ -750,6 +797,69 @@ but z-ordering flagged vehicles above healthy ones stops being sufficient when a
 vehicles overlap each other — which is the same pressure toward aggregation §7.1 and §7.2 already
 identified, arriving through a third route. The full-window map and the panel structure are
 unaffected.
+
+### 7.6 Interaction, and telling the truth about what is not known
+
+**Label search exists because handoff runs both ways.** F3 covered the outbound half — the operator
+names a vehicle to someone else. The inbound half is somebody radioing "check LV-042", which would
+otherwise mean scanning a hundred markers by eye, because filters narrow by category and never by
+identity. This is a capability the brief does not ask for, and it is here on that specific
+justification rather than because search is generally useful.
+
+**A selection is the operator's, and only the operator clears it.** Status changes, staleness, and
+filters all leave it intact. When a filter would exclude the selected vehicle it stays drawn, marked
+as outside the filter: a filter narrows what is being looked at, it does not overrule what the
+operator has explicitly asked to watch. The alternative — clearing the selection — is more
+internally consistent and was declined because the panel would vanish without the operator
+necessarily connecting it to the filter they just applied.
+
+**Filters combine as alternatives within a category and intersection across categories.** This is
+the standard faceted model, needs no explaining, and is what makes the query that actually matters
+expressible: *available vehicles I cannot rely on*. A single-active-filter model is simpler and
+cannot express it, and would make the summary's click-to-filter clobber an existing filter instead
+of refining it.
+
+**The summary is a way in, not just a readout.** It answers "how many"; the operator's next question
+is always "which ones", and that is exactly a filter, so no new concept is needed. ⚠️ The trap is
+that a figure must *not* change when its own filter is applied — the summary describes the whole
+fleet, so selecting "12 stale" leaves the figure at 12 while the map narrows. A figure that tracked
+its own filter would be both a defect and an easy one to introduce.
+
+**Thresholds live in the legend, beside the thing they define.** The legend is already mandatory and
+is where someone looks to decode the map. A help panel hides them; tooltips alone make them
+discoverable only by accident.
+
+**No list view.** The map, filters, summary and search cover the needs, and a list is a second full
+surface to keep consistent with the first. The strongest version of the argument for one is a compact
+queue of flagged vehicles only, which directly serves N4 — declined because the flagged set is small
+and already raised above everything else on the map. It is the most defensible later addition, and
+it is where ranking would live if §7.1's "use ordering, not a second band" ever needs somewhere to
+happen.
+
+**Coverage is a layer on the one map, not a view of its own.** "This zone is short and there are
+three vehicles sitting just outside it" is the observation N5 is really about, and a separate
+coverage view destroys it. Shaded zones do compete with reading individual markers, so the layer can
+be turned off; layer visibility persists, which is safe because it cannot make the fleet look
+smaller than it is.
+
+**Connection health and vehicle health are separate concerns, and conflating them produces a false
+claim.** If the client keeps evaluating staleness while disconnected, every vehicle goes stale within
+two intervals and the map blames a hundred healthy vehicles for one failed connection. So staleness
+freezes while disconnected, and the view-level indication carries the problem instead. ⚠️ **This
+constrains a technical decision not yet taken:** if staleness is computed in the backend (§6.11), a
+disconnected client gets this behaviour for free because it simply receives nothing further; if it is
+computed in the client, suspension has to be explicit. Worth knowing before choosing.
+
+**Four distinct ways of knowing nothing, none of which may render as a blank map.** Filling, empty,
+disconnected, and excluded-by-filter each demand a different response from the operator, and each
+must be separately recognisable. Treating unknown as empty is the specific failure that is easiest to
+ship by accident, and it is the one F6 and F9 exist to prevent.
+
+**At ~1000 vehicles:** label search becomes *more* important, since visual scanning stops working
+entirely, and it is the only identity-based access path. Declining a list view gets harder to
+sustain for the same reason — the flagged queue is the natural answer at that scale, and would carry
+the ordering §7.1 defers. Faceted filtering, the summary-as-navigation, and the four empty states are
+all unaffected by fleet size.
 
 ---
 

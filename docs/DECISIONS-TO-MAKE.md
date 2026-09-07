@@ -144,6 +144,7 @@ events, at-least-once, unordered — these settle what that actually entails.
   mean anything?
 - **5.14** — Are events about a single vehicle related to each other in any way the backend can
   rely on?
+- **5.15** — Does a vehicle ever leave the fleet, and if so how does the backend learn that? *(spec)*
 
 ---
 
